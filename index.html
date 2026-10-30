@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <title>Gym Log Mini App</title>
+
+
+
+  <!-- Telegram Web App SDK -->
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+
+
+  <!-- Внешние библиотеки загружаются асинхронно, чтобы не блокировать интерфейс -->
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.js" defer></script>
+
+
+
+  <style>
+
+    :root {
+
+      --bg-color: var(--tg-theme-bg-color, #0b0f19);
+
+      --card-bg: var(--tg-theme-secondary-bg-color, #161e2e);
+
+      --accent: var(--tg-theme-button-color, #38bdf8);
+
+      --accent-text: var(--tg-theme-button-text-color, #0b0f19);
+
+      --accent-green: #22c55e;
+
+      --text-main: var(--tg-theme-text-color, #f8fafc);
+
+      --text-muted: var(--tg-theme-hint-color, #64748b);
+
+      --danger: #ef4444;
+
+      --border-color: #1e293b;
+
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Roboto, sans-serif; }
+
+    
+
+    html, body {
+
+      height: 100dvh;
+
+      overflow: hidden;
+
+      background-color: var(--bg-color);
+
+      color: var(--text-main);
+
+      display: flex;
+
+      flex-direction: column;
+
+    }
+
+
+
+    /* Экран авторизации поверх всего */
+
+    #auth-screen {
+
+      position: fixed;
+
+      top: 0;
+
+      left: 0;
+
+      width: 100%;
+
+      height: 100dvh;
+
+      background: var(--bg-color);
+
+      z-index: 99999;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      padding: 20px;
+
+    }
+
+
+
+    header { 
+
+      padding: 10px 16px; 
+
+      text-align: center; 
+
+      background: var(--card-bg); 
+
+      border-bottom: 1px solid var(--border-color);
+
+      flex-shrink: 0;
+
+      padding-top: calc(env(safe-area-inset-top) + 6px);
+
+    }
+
+    header h1 { font-size: 1.05rem; font-weight: 800; letter-spacing: 1px; color: var(--accent); text-transform: uppercase; }
+
+
+
+    .container { 
+
+      flex: 1; 
+
+      padding: 10px; 
+
+      max-width: 500px; 
+
+      margin: 0 auto; 
+
+      width: 100%;
+
+      display: flex;
+
+      flex-direction: column;
+
+      overflow: hidden;
+
+    }
+
+
+
+    .tab-content { 
+
+      display: none; 
+
+      height: 100%;
+
+      flex-direction: column;
+
+      gap: 8px;
+
+    }
+
+    .tab-content.active { display: flex; }
+
+
+
+    .card { 
+
+      background: var(--card-bg); 
+
+      border-radius: 12px; 
+
+      padding: 10px 12px; 
+
+      border: 1px solid var(--border-color); 
+
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+
+      flex-shrink: 0;
+
+    }
+
+    .card h2 { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
+
+
+
+    .card-scrollable {
+
+      flex: 1;
+
+      overflow-y: auto;
+
+      min-height: 0;
+
+    }
+
+
+
+    label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
+
+    select, input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: #0b0f19; color: #fff; font-size: 0.9rem; margin-bottom: 8px; outline: none; }
+
+    select:focus, input:focus { border-color: var(--accent); }
+
+
+
+    .row { display: flex; gap: 8px; }
+
+    .row > div { flex: 1; }
+
+
+
+    .quick-adjust { display: flex; gap: 4px; margin-bottom: 8px; }
+
+    .btn-step { background: #1e293b; color: var(--accent); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; border: none; font-weight: 600; cursor: pointer; }
+
+
+
+    button { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; }
+
+    .btn-primary { background: var(--accent); color: var(--accent-text); }
+
+    .btn-primary:active { opacity: 0.8; }
+
+    .btn-success { background: var(--accent-green); color: #fff; }
+
+
+
+    details { background: #0b0f19; border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--border-color); overflow: hidden; }
+
+    summary { padding: 8px 12px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; color: var(--text-main); }
+
+    summary::-webkit-details-marker { display: none; }
+
+    summary::after { content: '❯'; font-size: 0.7rem; color: var(--accent); transition: transform 0.2s; }
+
+    details[open] summary::after { transform: rotate(90deg); }
+
+    details[open] summary { border-bottom: 1px solid var(--border-color); background: rgba(56, 189, 248, 0.05); }
+
+
+
+    .set-item-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-bottom: 1px solid #1e293b; font-size: 0.8rem; }
+
+    .set-item-row:last-child { border-bottom: none; }
+
+
+
+    .btn-close {
+
+      background: none;
+
+      border: none;
+
+      color: var(--danger);
+
+      font-size: 1.1rem;
+
+      font-weight: bold;
+
+      line-height: 1;
+
+      padding: 2px 6px;
+
+      cursor: pointer;
+
+      width: auto;
+
+    }
+
+
+
+    nav { 
+
+      background: var(--card-bg); 
+
+      display: flex; 
+
+      border-top: 1px solid var(--border-color); 
+
+      padding-bottom: calc(env(safe-area-inset-bottom) + 4px); 
+
+      z-index: 100; 
+
+      flex-shrink: 0;
+
+    }
+
+    nav button { background: none; color: var(--text-muted); border-radius: 0; padding: 8px 0 4px 0; font-size: 0.65rem; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    nav button svg { width: 18px; height: 18px; fill: currentColor; transition: 0.2s; }
+
+    nav button.active { color: var(--accent); }
+
+
+
+    .vanilla-calendar { background: #0b0f19 !important; border-color: var(--border-color) !important; width: 100% !important; padding: 6px !important; }
+
+    .vanilla-calendar-day__btn_selected { background-color: var(--accent) !important; color: #0b0f19 !important; font-weight: bold; }
+
+    .workout-day-mark { background-color: var(--accent-green); border-radius: 50%; width: 5px; height: 5px; margin: 1px auto 0 auto; }
+
+  </style>
+
+</head>
+
+<body>
+
+
+
+  <!-- Окно авторизации -->
+
+  <div id="auth-screen">
+
+    <div class="card" style="width: 100%; max-width: 320px; text-align: center;">
+
+      <h2 style="margin-bottom: 12px; color: var(--accent);">Вход в Gym Log</h2>
+
+      <label style="text-align: left;">Логин</label>
+
+      <input type="text" id="auth-login" placeholder="Введите логин" style="margin-bottom: 10px;">
+
+      <label style="text-align: left;">Пароль</label>
+
+      <input type="password" id="auth-password" placeholder="Введите пароль">
+
+      <button class="btn-primary" onclick="login()" style="margin-top: 6px;">Войти</button>
+
+      <div id="auth-error" style="color: var(--danger); font-size: 0.75rem; margin-top: 8px; display: none;">Неверный логин или пароль</div>
+
+    </div>
+
+  </div>
+
+
+
+  <header>
+
+    <h1>Gym Log</h1>
+
+  </header>
+
+
+
+  <div class="container">
+
+    
+
+    <!-- Вкладка 1: Тренировка -->
+
+    <section id="tab-workout" class="tab-content active">
+
+      <div class="card">
+
+        <h2>Запись подхода</h2>
+
+        <label for="exercise-select">Тренажер / Упражнение</label>
+
+        <select id="exercise-select" onchange="onExerciseChange()"></select>
+
+        <div id="last-workout-info" style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; font-weight: 600;"></div>
+
+        
+
+        <div class="row">
+
+          <div>
+
+            <label>Вес (кг)</label>
+
+            <input type="number" id="input-weight" placeholder="0" step="0.5">
+
+            <div class="quick-adjust">
+
+              <button class="btn-step" onclick="adjustValue('input-weight', -2.5)">-2.5</button>
+
+              <button class="btn-step" onclick="adjustValue('input-weight', 2.5)">+2.5</button>
+
+            </div>
+
+          </div>
+
+          <div>
+
+            <label>Повторения</label>
+
+            <input type="number" id="input-reps" placeholder="0">
+
+            <div class="quick-adjust">
+
+              <button class="btn-step" onclick="adjustValue('input-reps', -1)">-1</button>
+
+              <button class="btn-step" onclick="adjustValue('input-reps', 1)">+1</button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        
+
+        <button class="btn-primary" onclick="addSet()">Сохранить подход</button>
+
+      </div>
+
+
+
+      <div class="card card-scrollable">
+
+        <h2>Сегодняшняя сессия</h2>
+
+        <div id="today-sets">
+
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Подходов пока нет</p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- Вкладка 2: Календарь -->
+
+    <section id="tab-calendar" class="tab-content">
+
+      <div class="card">
+
+        <h2>Активность</h2>
+
+        <div id="calendar"></div>
+
+      </div>
+
+      <div class="card card-scrollable">
+
+        <h2 id="selected-date-title">Выберите дату</h2>
+
+        <div id="calendar-day-details">
+
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Выберите подсвеченный день для просмотра истории.</p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- Вкладка 3: Прогресс -->
+
+    <section id="tab-progress" class="tab-content">
+
+      <div class="card">
+
+        <h2>Динамика рабочих весов</h2>
+
+        <div class="row" style="margin-bottom: 8px;">
+
+          <button id="filter-week" class="btn-primary" onclick="setFilter('week')">Неделя</button>
+
+          <button id="filter-month" style="background:#0b0f19; color:#fff;" onclick="setFilter('month')">Месяц</button>
+
+        </div>
+
+        <label for="progress-exercise-select">Тренажер</label>
+
+        <select id="progress-exercise-select" onchange="updateChart()"></select>
+
+      </div>
+
+      <div class="card card-scrollable" style="display: flex; align-items: center; justify-content: center;">
+
+        <canvas id="progressChart" style="max-height: 200px; width: 100%;"></canvas>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- Вкладка 4: Настройки -->
+
+    <section id="tab-manage" class="tab-content">
+
+      <div class="card">
+
+        <h2>Добавить новый тренажер</h2>
+
+        <input type="text" id="new-exercise-name" placeholder="Название тренажера">
+
+        <button class="btn-success" onclick="addNewExercise()">Добавить в базу</button>
+
+      </div>
+
+      
+
+      <div class="card card-scrollable">
+
+        <h2>База тренажеров</h2>
+
+        <div id="exercise-list-manage"></div>
+
+      </div>
+
+
+
+      <div class="card">
+
+        <h2>Резервная копия данных</h2>
+
+        <div class="row" style="margin-bottom: 8px;">
+
+          <button class="btn-primary" onclick="exportData()">Экспорт</button>
+
+          <button class="btn-step" onclick="importData()">Импорт</button>
+
+        </div>
+
+        <button style="background: var(--danger); color: #fff;" onclick="logout()">Выйти из системы</button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+
+
+  <nav>
+
+    <button id="nav-workout" class="active" onclick="switchTab('workout')">
+
+      <svg viewBox="0 0 24 24"><path d="M6 5v14h2V5H6zm10 0v14h2V5h-2zM2 9v6h2V9H2zm18 0v6h2V9h-2zM9 11v2h6v-2H9z"/></svg>
+
+      Зал
+
+    </button>
+
+    <button id="nav-calendar" onclick="switchTab('calendar')">
+
+      <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+
+      Календарь
+
+    </button>
+
+    <button id="nav-progress" onclick="switchTab('progress')">
+
+      <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+
+      Прогресс
+
+    </button>
+
+    <button id="nav-manage" onclick="switchTab('manage')">
+
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+
+      Настройки
+
+    </button>
+
+  </nav>
+
+
+
+  <script>
+
+    // ИЗМЕНИТЕ ЛОГИН И ПАРОЛЬ ЗДЕСЬ
+
+    const AUTH_LOGIN = "admin";
+
+    const AUTH_PASS = "1234";
+
+
+
+    const tg = window.Telegram?.WebApp;
+
+    if (tg) {
+
+      tg.ready();
+
+      tg.expand();
+
+    }
+
+
+
+    // Проверка авторизации при запуске
+
+    function checkAuth() {
+
+      if (localStorage.getItem('gym_auth_logged') === 'true') {
+
+        document.getElementById('auth-screen').style.display = 'none';
+
+      } else {
+
+        document.getElementById('auth-screen').style.display = 'flex';
+
+      }
+
+    }
+
+
+
+    function login() {
+
+      const loginVal = document.getElementById('auth-login').value.trim();
+
+      const passVal = document.getElementById('auth-password').value.trim();
+
+
+
+      if (loginVal === AUTH_LOGIN && passVal === AUTH_PASS) {
+
+        localStorage.setItem('gym_auth_logged', 'true');
+
+        document.getElementById('auth-screen').style.display = 'none';
+
+        document.getElementById('auth-error').style.display = 'none';
+
+        triggerHaptic();
+
+      } else {
+
+        document.getElementById('auth-error').style.display = 'block';
+
+      }
+
+    }
+
+
+
+    function logout() {
+
+      localStorage.removeItem('gym_auth_logged');
+
+      document.getElementById('auth-login').value = '';
+
+      document.getElementById('auth-password').value = '';
+
+      document.getElementById('auth-screen').style.display = 'flex';
+
+      triggerHaptic();
+
+    }
+
+
+
+    const defaultExercises = [
+
+      "Подъем штанги на бицепс", "Румынская тяга", "Румынская тяга в Смите",
+
+      "Приседания в Смите", "Ягодичный мост в Смите", "Бицепс в блоке",
+
+      "Трицепс в блоке", "Бицепс с гантелями", "Плечи с гантелями",
+
+      "Выпады с гантелями", "Пресс вертикальный", "Жим груди в блоке",
+
+      "Сведения на грудь в блоке", "Жим плечи в блоке", "Сгибания ног на ягодицы",
+
+      "Разгибания ног", "Сведение бедер", "Разведение бедер",
+
+      "Отведение ноги назад", "Жим платформы"
+
+    ];
+
+
+
+    let exercises = [];
+
+    let workoutLogs = [];
+
+
+
+    const userId = tg?.initDataUnsafe?.user?.id ? `_tg_${tg.initDataUnsafe.user.id}` : '';
+
+    const STORAGE_KEY_EX = `gym_exercises${userId}`;
+
+    const STORAGE_KEY_LOGS = `gym_logs${userId}`;
+
+
+
+    // Защищенная загрузка данных (БЕЗ ПАДЕНИЙ)
+
+    function loadData() {
+
+      try {
+
+        const savedExercises = localStorage.getItem(STORAGE_KEY_EX);
+
+        const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+
+        exercises = savedExercises ? JSON.parse(savedExercises) : defaultExercises;
+
+        workoutLogs = savedLogs ? JSON.parse(savedLogs) : [];
+
+      } catch (e) {
+
+        console.warn('Ошибка чтения localStorage, сброс к дефолту', e);
+
+        exercises = defaultExercises;
+
+        workoutLogs = [];
+
+        localStorage.removeItem(STORAGE_KEY_EX);
+
+        localStorage.removeItem(STORAGE_KEY_LOGS);
+
+      }
+
+    }
+
+
+
+    function saveData() {
+
+      try {
+
+        localStorage.setItem(STORAGE_KEY_EX, JSON.stringify(exercises));
+
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(workoutLogs));
+
+      } catch (e) {
+
+        console.error('Ошибка сохранения данных:', e);
+
+      }
+
+    }
+
+
+
+    document.addEventListener('visibilitychange', () => { if (document.hidden) saveData(); });
+
+    window.addEventListener('pagehide', saveData);
+
+
+
+    function triggerHaptic() {
+
+      if (tg?.HapticFeedback) {
+
+        tg.HapticFeedback.impactOccurred('medium');
+
+      }
+
+    }
+
+
+
+    function switchTab(tabName) {
+
+      triggerHaptic();
+
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+
+      
+
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      document.getElementById(`nav-${tabName}`).classList.add('active');
+
+      
+
+      if (tabName === 'progress') {
+
+        renderProgressSelect();
+
+        updateChart();
+
+      } else if (tabName === 'calendar') {
+
+        initOrUpdateCalendar();
+
+      }
+
+    }
+
+
+
+    function renderExerciseSelects() {
+
+      const select = document.getElementById('exercise-select');
+
+      select.innerHTML = '';
+
+      exercises.forEach(ex => {
+
+        const opt = document.createElement('option');
+
+        opt.value = ex;
+
+        opt.textContent = ex;
+
+        select.appendChild(opt);
+
+      });
+
+      onExerciseChange();
+
+      renderManageList();
+
+    }
+
+
+
+    function onExerciseChange() {
+
+      const selected = document.getElementById('exercise-select').value;
+
+      const lastLogs = workoutLogs.filter(log => log.exercise === selected);
+
+      const infoBox = document.getElementById('last-workout-info');
+
+      
+
+      if (lastLogs.length > 0) {
+
+        const last = lastLogs[lastLogs.length - 1];
+
+        infoBox.textContent = `Прошлый вес: ${last.weight} кг × ${last.reps} повт.`;
+
+        document.getElementById('input-weight').value = last.weight;
+
+        document.getElementById('input-reps').value = last.reps;
+
+      } else {
+
+        infoBox.textContent = 'Новое упражнение (нет истории)';
+
+        document.getElementById('input-weight').value = '';
+
+        document.getElementById('input-reps').value = '';
+
+      }
+
+    }
+
+
+
+    function adjustValue(inputId, step) {
+
+      triggerHaptic();
+
+      const input = document.getElementById(inputId);
+
+      let val = parseFloat(input.value) || 0;
+
+      val = Math.max(0, val + step);
+
+      input.value = val;
+
+    }
+
+
+
+    function addSet() {
+
+      const exercise = document.getElementById('exercise-select').value;
+
+      const weight = parseFloat(document.getElementById('input-weight').value);
+
+      const reps = parseInt(document.getElementById('input-reps').value);
+
+      
+
+      if (!exercise || isNaN(weight) || isNaN(reps)) {
+
+        if (tg?.showAlert) tg.showAlert('Заполните вес и количество повторений');
+
+        else alert('Заполните вес и количество повторений');
+
+        return;
+
+      }
+
+
+
+      const now = new Date();
+
+      const todayStr = now.toISOString().split('T')[0];
+
+
+
+      const newLog = {
+
+        id: Date.now(),
+
+        dateStr: todayStr,
+
+        timestamp: now.toISOString(),
+
+        exercise,
+
+        weight,
+
+        reps
+
+      };
+
+
+
+      workoutLogs.push(newLog);
+
+      saveData();
+
+      renderTodaySets();
+
+      triggerHaptic();
+
+    }
+
+
+
+    function renderTodaySets() {
+
+      const container = document.getElementById('today-sets');
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const todayLogs = workoutLogs.filter(l => l.dateStr === todayStr);
+
+
+
+      if (todayLogs.length === 0) {
+
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Подходов пока нет</p>';
+
+        return;
+
+      }
+
+
+
+      const grouped = {};
+
+      todayLogs.forEach(set => {
+
+        if (!grouped[set.exercise]) grouped[set.exercise] = [];
+
+        grouped[set.exercise].push(set);
+
+      });
+
+
+
+      container.innerHTML = '';
+
+      Object.keys(grouped).forEach(exName => {
+
+        const sets = grouped[exName];
+
+        const details = document.createElement('details');
+
+        details.open = true;
+
+        const summary = document.createElement('summary');
+
+        summary.innerHTML = `
+
+          <span>${exName}</span>
+
+          <span style="color: var(--text-muted); font-size: 0.75rem; margin-right: 6px;">${sets.length} подх.</span>
+
+        `;
+
+        details.appendChild(summary);
+
+
+
+        sets.forEach((set, index) => {
+
+          const row = document.createElement('div');
+
+          row.className = 'set-item-row';
+
+          row.innerHTML = `
+
+            <span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт.</span>
+
+            <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
+
+          `;
+
+          details.appendChild(row);
+
+        });
+
+        container.appendChild(details);
+
+      });
+
+    }
+
+
+
+    function deleteSet(id) {
+
+      triggerHaptic();
+
+      workoutLogs = workoutLogs.filter(l => l.id !== id);
+
+      saveData();
+
+      renderTodaySets();
+
+    }
+
+
+
+    let calendarInstance = null;
+
+    function initOrUpdateCalendar() {
+
+      if (typeof VanillaCalendar === 'undefined') return; // Ленивая загрузка
+
+      const workoutDates = [...new Set(workoutLogs.map(l => l.dateStr))];
+
+      if (!calendarInstance) {
+
+        calendarInstance = new VanillaCalendar('#calendar', {
+
+          settings: { lang: 'ru', iso8601: true, selection: { day: 'single' } },
+
+          actions: {
+
+            clickDay(event, self) {
+
+              triggerHaptic();
+
+              showDayDetails(self.selectedDates[0]);
+
+            }
+
+          }
+
+        });
+
+        calendarInstance.init();
+
+      }
+
+      highlightWorkoutDays(workoutDates);
+
+    }
+
+
+
+    function highlightWorkoutDays(dates) {
+
+      setTimeout(() => {
+
+        dates.forEach(date => {
+
+          const dayCell = document.querySelector(`[data-calendar-day="${date}"]`);
+
+          if (dayCell && !dayCell.querySelector('.workout-day-mark')) {
+
+            const mark = document.createElement('div');
+
+            mark.className = 'workout-day-mark';
+
+            dayCell.appendChild(mark);
+
+          }
+
+        });
+
+      }, 100);
+
+    }
+
+
+
+    function showDayDetails(dateStr) {
+
+      const container = document.getElementById('calendar-day-details');
+
+      const title = document.getElementById('selected-date-title');
+
+      if (!dateStr) return;
+
+      
+
+      const formattedDate = new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      title.textContent = `Тренировка: ${formattedDate}`;
+
+      const logsForDay = workoutLogs.filter(l => l.dateStr === dateStr);
+
+
+
+      if (logsForDay.length === 0) {
+
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">В этот день тренировок не было.</p>';
+
+        return;
+
+      }
+
+
+
+      const grouped = {};
+
+      logsForDay.forEach(set => {
+
+        if (!grouped[set.exercise]) grouped[set.exercise] = [];
+
+        grouped[set.exercise].push(set);
+
+      });
+
+
+
+      container.innerHTML = '';
+
+      Object.keys(grouped).forEach(exName => {
+
+        const sets = grouped[exName];
+
+        const details = document.createElement('details');
+
+        details.open = true;
+
+        const summary = document.createElement('summary');
+
+        summary.innerHTML = `<span>${exName}</span><span style="color: var(--text-muted); font-size: 0.75rem; margin-right: 6px;">${sets.length} подх.</span>`;
+
+        details.appendChild(summary);
+
+
+
+        sets.forEach((set, index) => {
+
+          const row = document.createElement('div');
+
+          row.className = 'set-item-row';
+
+          row.innerHTML = `<span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт.</span>`;
+
+          details.appendChild(row);
+
+        });
+
+        container.appendChild(details);
+
+      });
+
+    }
+
+
+
+    function renderManageList() {
+
+      const container = document.getElementById('exercise-list-manage');
+
+      container.innerHTML = '';
+
+      exercises.forEach(ex => {
+
+        const item = document.createElement('div');
+
+        item.className = 'set-item-row';
+
+        item.style.background = '#0b0f19';
+
+        item.style.marginBottom = '4px';
+
+        item.style.borderRadius = '6px';
+
+        item.innerHTML = `
+
+          <span>${ex}</span>
+
+          <button class="btn-close" onclick="removeExercise('${ex}')" title="Удалить тренажер">&times;</button>
+
+        `;
+
+        container.appendChild(item);
+
+      });
+
+    }
+
+
+
+    function addNewExercise() {
+
+      const input = document.getElementById('new-exercise-name');
+
+      const name = input.value.trim();
+
+      if (name && !exercises.includes(name)) {
+
+        exercises.push(name);
+
+        saveData();
+
+        renderExerciseSelects();
+
+        input.value = '';
+
+        triggerHaptic();
+
+      }
+
+    }
+
+
+
+    function removeExercise(name) {
+
+      exercises = exercises.filter(e => e !== name);
+
+      saveData();
+
+      renderExerciseSelects();
+
+      triggerHaptic();
+
+    }
+
+
+
+    function exportData() {
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exercises, workoutLogs }));
+
+      const downloadAnchor = document.createElement('a');
+
+      downloadAnchor.setAttribute("href", dataStr);
+
+      downloadAnchor.setAttribute("download", `gym_log_backup_${new Date().toISOString().split('T')[0]}.json`);
+
+      document.body.appendChild(downloadAnchor);
+
+      downloadAnchor.click();
+
+      downloadAnchor.remove();
+
+    }
+
+
+
+    function importData() {
+
+      const json = prompt("Вставьте JSON-строку резервной копии:");
+
+      if (json) {
+
+        try {
+
+          const parsed = JSON.parse(json);
+
+          if (parsed.exercises && parsed.workoutLogs) {
+
+            exercises = parsed.exercises;
+
+            workoutLogs = parsed.workoutLogs;
+
+            saveData();
+
+            renderExerciseSelects();
+
+            renderTodaySets();
+
+            if (tg?.showAlert) tg.showAlert("Данные успешно восстановлены!");
+
+            else alert("Данные успешно восстановлены!");
+
+          }
+
+        } catch (e) {
+
+          if (tg?.showAlert) tg.showAlert("Ошибка формата данных!");
+
+          else alert("Ошибка формата данных!");
+
+        }
+
+      }
+
+    }
+
+
+
+    function renderProgressSelect() {
+
+      const select = document.getElementById('progress-exercise-select');
+
+      select.innerHTML = '';
+
+      exercises.forEach(ex => {
+
+        const opt = document.createElement('option');
+
+        opt.value = ex;
+
+        opt.textContent = ex;
+
+        select.appendChild(opt);
+
+      });
+
+    }
+
+
+
+    let chartInstance = null;
+
+    let currentFilter = 'week';
+
+
+
+    function setFilter(filter) {
+
+      triggerHaptic();
+
+      currentFilter = filter;
+
+      document.getElementById('filter-week').style.background = filter === 'week' ? 'var(--accent)' : '#0b0f19';
+
+      document.getElementById('filter-week').style.color = filter === 'week' ? '#0b0f19' : '#fff';
+
+      document.getElementById('filter-month').style.background = filter === 'month' ? 'var(--accent)' : '#0b0f19';
+
+      document.getElementById('filter-month').style.color = filter === 'month' ? '#0b0f19' : '#fff';
+
+      updateChart();
+
+    }
+
+
+
+    function updateChart() {
+
+      if (typeof Chart === 'undefined') return; // Ленивая загрузка
+
+      const selected = document.getElementById('progress-exercise-select').value;
+
+      const now = new Date();
+
+      const days = currentFilter === 'week' ? 7 : 30;
+
+      const cutoffDate = new Date(now.setDate(now.getDate() - days));
+
+      
+
+      const filteredLogs = workoutLogs.filter(l => l.exercise === selected && new Date(l.dateStr) >= cutoffDate);
+
+      const labels = filteredLogs.map(l => new Date(l.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+
+      const weights = filteredLogs.map(l => l.weight);
+
+
+
+      const ctx = document.getElementById('progressChart').getContext('2d');
+
+      if (chartInstance) chartInstance.destroy();
+
+
+
+      chartInstance = new Chart(ctx, {
+
+        type: 'line',
+
+        data: {
+
+          labels: labels,
+
+          datasets: [{
+
+            label: 'Рабочий вес (кг)',
+
+            data: weights,
+
+            borderColor: '#38bdf8',
+
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+
+            fill: true,
+
+            tension: 0.3
+
+          }]
+
+        },
+
+        options: {
+
+          responsive: true,
+
+          maintainAspectRatio: false,
+
+          plugins: { legend: { display: false } },
+
+          scales: {
+
+            x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } },
+
+            y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } }
+
+          }
+
+        }
+
+      });
+
+    }
+
+
+
+    // Инициализация
+
+    checkAuth();
+
+    loadData();
+
+    renderExerciseSelects();
+
+    renderTodaySets();
+
+  </script>
+
+</body>
+
+</html>
