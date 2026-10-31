@@ -300,6 +300,20 @@
 
     .workout-day-mark { background-color: var(--accent-green); border-radius: 50%; width: 5px; height: 5px; margin: 1px auto 0 auto; }
 
+    
+
+    .version-info {
+
+      text-align: center;
+
+      font-size: 0.75rem;
+
+      color: var(--text-muted);
+
+      margin-top: 8px;
+
+    }
+
   </style>
 
 </head>
@@ -524,6 +538,8 @@
 
         <button style="background: var(--danger); color: #fff;" onclick="logout()">Выйти из системы</button>
 
+        <div class="version-info" id="app-version-display">Версия приложения: v1.0.2</div>
+
       </div>
 
     </section>
@@ -572,6 +588,12 @@
 
   <script>
 
+    // Версия сборки (увеличивается на +1 при каждом обновлении)
+
+    const APP_VERSION = "v1.0.2";
+
+
+
     // Логин и хэш пароля (SHA-256 для "1234")
 
     const AUTH_LOGIN = "admin";
@@ -584,7 +606,23 @@
 
     const LOCK_TIME_MS = 5 * 60 * 1000; // 5 минут
 
+    const SESSION_TIMEOUT_MS = 30 * 24 * 60 * 60 * 1000; // 30 дней неактивности (1 месяц)
+
     let lockTimerInterval = null;
+
+
+
+    // Обновление метки активности пользователя
+
+    function updateLastActivity() {
+
+      if (localStorage.getItem('gym_auth_logged') === 'true') {
+
+        localStorage.setItem('gym_last_activity', Date.now().toString());
+
+      }
+
+    }
 
 
 
@@ -616,13 +654,27 @@
 
 
 
-    // Проверка авторизации и статуса блокировки брутфорса
+    // Проверка авторизации, таймаута сессии и блокировки перебора
 
     function checkAuth() {
 
       const lockUntil = parseInt(localStorage.getItem('gym_lock_until') || '0', 10);
 
+      const lastActivity = parseInt(localStorage.getItem('gym_last_activity') || '0', 10);
+
       const now = Date.now();
+
+
+
+      // Проверка 30-дневного таймаута сессии
+
+      if (lastActivity > 0 && (now - lastActivity > SESSION_TIMEOUT_MS)) {
+
+        logout();
+
+        return;
+
+      }
 
 
 
@@ -633,6 +685,8 @@
       } else if (localStorage.getItem('gym_auth_logged') === 'true') {
 
         document.getElementById('auth-screen').style.display = 'none';
+
+        updateLastActivity();
 
       } else {
 
@@ -740,6 +794,8 @@
 
         localStorage.removeItem('gym_lock_until');
 
+        updateLastActivity();
+
         document.getElementById('auth-screen').style.display = 'none';
 
         errorDiv.style.display = 'none';
@@ -781,6 +837,8 @@
     function logout() {
 
       localStorage.removeItem('gym_auth_logged');
+
+      localStorage.removeItem('gym_last_activity');
 
       document.getElementById('auth-login').value = '';
 
@@ -878,9 +936,21 @@
 
 
 
-    document.addEventListener('visibilitychange', () => { if (document.hidden) saveData(); });
+    document.addEventListener('visibilitychange', () => { 
+
+      if (document.hidden) saveData();
+
+      else updateLastActivity();
+
+    });
 
     window.addEventListener('pagehide', saveData);
+
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+
+      document.addEventListener(evt, updateLastActivity, { passive: true });
+
+    });
 
 
 
@@ -1571,6 +1641,8 @@
     renderExerciseSelects();
 
     renderTodaySets();
+
+    document.getElementById('app-version-display').textContent = `Версия приложения: ${APP_VERSION}`;
 
   </script>
 
