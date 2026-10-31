@@ -216,6 +216,8 @@
 
     button { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; }
 
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
     .btn-primary { background: var(--accent); color: var(--accent-text); }
 
     .btn-primary:active { opacity: 0.8; }
@@ -322,9 +324,11 @@
 
       <input type="password" id="auth-password" placeholder="Введите пароль">
 
-      <button class="btn-primary" onclick="login()" style="margin-top: 6px;">Войти</button>
+      <button id="auth-btn" class="btn-primary" onclick="login()" style="margin-top: 6px;">Войти</button>
 
-      <div id="auth-error" style="color: var(--danger); font-size: 0.75rem; margin-top: 8px; display: none;">Неверный логин или пароль</div>
+      <div id="auth-error" style="color: var(--danger); font-size: 0.75rem; margin-top: 8px; display: none;"></div>
+
+      <div id="auth-lock-timer" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 8px; display: none;"></div>
 
     </div>
 
@@ -568,11 +572,35 @@
 
   <script>
 
-    // ИЗМЕНИТЕ ЛОГИН И ПАРОЛЬ ЗДЕСЬ
+    // Логин и хэш пароля (SHA-256 для "1234")
 
     const AUTH_LOGIN = "admin";
 
-    const AUTH_PASS = "1234";
+    const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
+
+
+
+    const MAX_ATTEMPTS = 5;
+
+    const LOCK_TIME_MS = 5 * 60 * 1000; // 5 минут
+
+    let lockTimerInterval = null;
+
+
+
+    // Вспомогательная функция хэширования SHA-256
+
+    async function hashString(message) {
+
+      const msgUint8 = new TextEncoder().encode(message);
+
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    }
 
 
 
@@ -588,11 +616,21 @@
 
 
 
-    // Проверка авторизации при запуске
+    // Проверка авторизации и статуса блокировки брутфорса
 
     function checkAuth() {
 
-      if (localStorage.getItem('gym_auth_logged') === 'true') {
+      const lockUntil = parseInt(localStorage.getItem('gym_lock_until') || '0', 10);
+
+      const now = Date.now();
+
+
+
+      if (lockUntil > now) {
+
+        lockUI(lockUntil);
+
+      } else if (localStorage.getItem('gym_auth_logged') === 'true') {
 
         document.getElementById('auth-screen').style.display = 'none';
 
@@ -606,27 +644,133 @@
 
 
 
-    function login() {
+    function lockUI(lockUntil) {
 
-      const loginVal = document.getElementById('auth-login').value.trim();
+      const btn = document.getElementById('auth-btn');
 
-      const passVal = document.getElementById('auth-password').value.trim();
+      const timerDiv = document.getElementById('auth-lock-timer');
+
+      const errorDiv = document.getElementById('auth-error');
+
+      
+
+      btn.disabled = true;
+
+      errorDiv.style.display = 'none';
+
+      timerDiv.style.display = 'block';
 
 
 
-      if (loginVal === AUTH_LOGIN && passVal === AUTH_PASS) {
+      if (lockTimerInterval) clearInterval(lockTimerInterval);
+
+
+
+      lockTimerInterval = setInterval(() => {
+
+        const diff = lockUntil - Date.now();
+
+
+
+        if (diff <= 0) {
+
+          clearInterval(lockTimerInterval);
+
+          localStorage.removeItem('gym_lock_until');
+
+          localStorage.setItem('gym_attempts', '0');
+
+          btn.disabled = false;
+
+          timerDiv.style.display = 'none';
+
+        } else {
+
+          const minutes = Math.floor(diff / 60000);
+
+          const seconds = Math.floor((diff % 60000) / 1000);
+
+          timerDiv.textContent = `Превышено число попыток. Блокировка: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+        }
+
+      }, 1000);
+
+    }
+
+
+
+    async function login() {
+
+      const loginInput = document.getElementById('auth-login');
+
+      const passInput = document.getElementById('auth-password');
+
+      const errorDiv = document.getElementById('auth-error');
+
+
+
+      const loginVal = loginInput.value.trim();
+
+      const passVal = passInput.value.trim();
+
+
+
+      if (!loginVal || !passVal) {
+
+        errorDiv.style.display = 'block';
+
+        errorDiv.textContent = 'Заполните логин и пароль';
+
+        return;
+
+      }
+
+
+
+      const passHash = await hashString(passVal);
+
+
+
+      if (loginVal === AUTH_LOGIN && passHash === AUTH_PASS_HASH) {
 
         localStorage.setItem('gym_auth_logged', 'true');
 
+        localStorage.removeItem('gym_attempts');
+
+        localStorage.removeItem('gym_lock_until');
+
         document.getElementById('auth-screen').style.display = 'none';
 
-        document.getElementById('auth-error').style.display = 'none';
+        errorDiv.style.display = 'none';
 
         triggerHaptic();
 
       } else {
 
-        document.getElementById('auth-error').style.display = 'block';
+        let attempts = parseInt(localStorage.getItem('gym_attempts') || '0', 10) + 1;
+
+        localStorage.setItem('gym_attempts', attempts.toString());
+
+
+
+        if (attempts >= MAX_ATTEMPTS) {
+
+          const lockUntil = Date.now() + LOCK_TIME_MS;
+
+          localStorage.setItem('gym_lock_until', lockUntil.toString());
+
+          lockUI(lockUntil);
+
+        } else {
+
+          errorDiv.style.display = 'block';
+
+          errorDiv.textContent = `Неверный логин или пароль. Осталось попыток: ${MAX_ATTEMPTS - attempts}`;
+
+        }
+
+        triggerHaptic();
 
       }
 
@@ -684,7 +828,7 @@
 
 
 
-    // Защищенная загрузка данных (БЕЗ ПАДЕНИЙ)
+    // Защищенная загрузка данных
 
     function loadData() {
 
@@ -1018,7 +1162,7 @@
 
     function initOrUpdateCalendar() {
 
-      if (typeof VanillaCalendar === 'undefined') return; // Ленивая загрузка
+      if (typeof VanillaCalendar === 'undefined') return;
 
       const workoutDates = [...new Set(workoutLogs.map(l => l.dateStr))];
 
@@ -1171,6 +1315,8 @@
         item.style.background = '#0b0f19';
 
         item.style.marginBottom = '4px';
+
+
 
         item.style.borderRadius = '6px';
 
@@ -1340,7 +1486,7 @@
 
     function updateChart() {
 
-      if (typeof Chart === 'undefined') return; // Ленивая загрузка
+      if (typeof Chart === 'undefined') return;
 
       const selected = document.getElementById('progress-exercise-select').value;
 
