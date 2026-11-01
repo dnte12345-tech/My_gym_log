@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-log-cache-v1.0.3';
+const CACHE_NAME = 'gym-log-cache-v1.0.4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,7 +8,6 @@ const ASSETS_TO_CACHE = [
   'https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.js'
 ];
 
-// Установка Service Worker и кеширование всех статических ресурсов
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +16,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Активация и удаление старых кешей
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -32,7 +30,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Стратегия Cache First (сначала кеш, затем сеть)
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
@@ -49,7 +46,6 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Офлайн фоллбэк
         return caches.match('./index.html');
       });
     })
