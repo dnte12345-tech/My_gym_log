@@ -624,7 +624,7 @@
 
         <button style="background: var(--danger); color: #fff;" onclick="logout()">Выйти из системы</button>
 
-        <div class="version-info" id="app-version-display">Версия приложения: v1.0.6</div>
+        <div class="version-info" id="app-version-display">Версия приложения: v1.0.7</div>
 
       </div>
 
@@ -674,7 +674,7 @@
 
   <script>
 
-    const APP_VERSION = "v1.0.6";
+    const APP_VERSION = "v1.0.7";
 
 
 
@@ -976,9 +976,11 @@
 
       "Сведения на грудь в блоке", "Жим плечи в блоке", "Сгибания ног на ягодицы",
 
-      "Сгибания ног в тренажере", "Разгибания ног", "Сведение бедер", "Разведение бедер",
+      "Разгибания ног", "Сведение бедер", "Разведение бедер",
 
-      "Отведение ноги назад", "Жим платформы"
+      "Отведение ноги назад", "Жим платформы",
+
+      "Тяга горизонтальная на спину", "Тяга вертикальная на спину", "Подтягивания в гравитроне"
 
     ];
 
@@ -1043,6 +1045,12 @@
         exercises = rawExercises ? JSON.parse(rawExercises) : defaultExercises;
 
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
+
+
+
+        // Автоматическое удаление устаревших дубликатов
+
+        exercises = exercises.filter(e => e !== "Сгибания ног в тренажере");
 
 
 
