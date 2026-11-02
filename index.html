@@ -307,7 +307,7 @@
 
     .vanilla-calendar { background: var(--input-bg) !important; border-color: var(--border-color) !important; width: 100% !important; padding: 6px !important; color: var(--text-main) !important; }
     .vanilla-calendar-day__btn_selected { background-color: var(--accent) !important; color: var(--accent-text) !important; font-weight: bold; }
-    .workout-day-mark { background-color: var(--accent-green); border-radius: 50%; width: 5px; height: 5px; margin: 1px auto 0 auto; }
+    .vanilla-calendar-day__btn_workout { background-color: rgba(34, 197, 94, 0.25) !important; color: #22c55e !important; border: 1px solid rgba(34, 197, 94, 0.5) !important; font-weight: bold; }
     
     .version-info {
       text-align: center;
@@ -359,7 +359,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.14</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.15</div>
     </div>
   </div>
 
@@ -491,22 +491,52 @@
     <section id="tab-body" class="tab-content">
       <div class="card">
         <h2>⚖️ Антропометрия</h2>
-        <div class="row">
+        <div class="row" style="margin-bottom:4px;">
           <div>
             <label>Вес тела (кг)</label>
             <input type="number" id="input-body-weight" placeholder="71.7" step="0.1">
           </div>
           <div>
-            <label>Талия / Живот (см)</label>
+            <label>Талия (см)</label>
             <input type="number" id="input-body-waist" placeholder="0" step="0.5">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:4px;">
+          <div>
+            <label>Грудь (см)</label>
+            <input type="number" id="input-body-chest" placeholder="0" step="0.5">
+          </div>
+          <div>
+            <label>Бедра (см)</label>
+            <input type="number" id="input-body-hips" placeholder="0" step="0.5">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:4px;">
+          <div>
+            <label>Бицепс (см)</label>
+            <input type="number" id="input-body-bicep" placeholder="0" step="0.5">
+          </div>
+          <div>
+            <label>Ягодицы (см)</label>
+            <input type="number" id="input-body-glutes" placeholder="0" step="0.5">
           </div>
         </div>
         <button class="btn-primary" onclick="addBodyRecord()" style="margin-top: 4px;">Записать параметры</button>
       </div>
 
-      <div class="card" style="max-height: 150px; display: flex; flex-direction: column;">
-        <h2 style="font-size: 0.75rem; margin-bottom: 4px;">Динамика веса</h2>
-        <div style="flex: 1; min-height: 80px;">
+      <div class="card" style="max-height: 175px; display: flex; flex-direction: column;">
+        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 4px;">
+          <h2 style="font-size: 0.75rem; margin-bottom: 0;">Динамика замеров</h2>
+          <select id="body-metric-select" onchange="updateBodyChart()" style="width: auto; padding: 2px 6px; font-size: 0.75rem; margin-bottom: 0;">
+            <option value="weight">⚖️ Вес тела (кг)</option>
+            <option value="waist">📏 Талия (см)</option>
+            <option value="chest">📐 Грудь (см)</option>
+            <option value="hips">🦵 Бедра (см)</option>
+            <option value="bicep">💪 Бицепс (см)</option>
+            <option value="glutes">🍑 Ягодицы (см)</option>
+          </select>
+        </div>
+        <div style="flex: 1; min-height: 100px;">
           <canvas id="bodyChart" style="width: 100%; height: 100%;"></canvas>
         </div>
       </div>
@@ -544,7 +574,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.14";
+    const APP_VERSION = "v1.0.15";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
@@ -994,6 +1024,13 @@
             clickDay(event, self) {
               triggerHaptic();
               showDayDetails(self.selectedDates[0]);
+              highlightWorkoutDays([...new Set(workoutLogs.map(l => l.dateStr))]);
+            },
+            changeMonth(self) {
+              highlightWorkoutDays([...new Set(workoutLogs.map(l => l.dateStr))]);
+            },
+            changeYear(self) {
+              highlightWorkoutDays([...new Set(workoutLogs.map(l => l.dateStr))]);
             }
           }
         });
@@ -1004,15 +1041,16 @@
 
     function highlightWorkoutDays(dates) {
       setTimeout(() => {
+        document.querySelectorAll('.vanilla-calendar-day__btn').forEach(btn => {
+          btn.classList.remove('vanilla-calendar-day__btn_workout');
+        });
         dates.forEach(date => {
-          const dayCell = document.querySelector(`[data-calendar-day="${date}"]`);
-          if (dayCell && !dayCell.querySelector('.workout-day-mark')) {
-            const mark = document.createElement('div');
-            mark.className = 'workout-day-mark';
-            dayCell.appendChild(mark);
+          const dayBtn = document.querySelector(`[data-calendar-day="${date}"]`);
+          if (dayBtn) {
+            dayBtn.classList.add('vanilla-calendar-day__btn_workout');
           }
         });
-      }, 100);
+      }, 50);
     }
 
     function showDayDetails(dateStr) {
@@ -1068,12 +1106,26 @@
       addBlock.style.border = '1px solid var(--border-color)';
       addBlock.innerHTML = `
         <div style="font-size:0.75rem; font-weight:bold; color:var(--accent); margin-bottom:6px;">+ Добавить забытый подход</div>
-        <select id="cal-add-ex" style="font-size:0.8rem; margin-bottom:4px;"></select>
+        <select id="cal-add-ex" style="font-size:0.8rem; margin-bottom:6px;"></select>
         <div class="row" style="margin-bottom:4px;">
-          <input type="number" id="cal-add-weight" placeholder="Вес (кг)" step="0.5" style="font-size:0.8rem; margin-bottom:0;">
-          <input type="number" id="cal-add-reps" placeholder="Повторения" style="font-size:0.8rem; margin-bottom:0;">
+          <div>
+            <label style="font-size:0.65rem;">Вес (кг)</label>
+            <input type="number" id="cal-add-weight" placeholder="0" step="0.5" style="font-size:0.8rem; margin-bottom:4px;">
+            <div class="quick-adjust">
+              <button class="btn-step" onclick="adjustValue('cal-add-weight', -2.5)">-2.5</button>
+              <button class="btn-step" onclick="adjustValue('cal-add-weight', 2.5)">+2.5</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.65rem;">Повторения</label>
+            <input type="number" id="cal-add-reps" placeholder="0" style="font-size:0.8rem; margin-bottom:4px;">
+            <div class="quick-adjust">
+              <button class="btn-step" onclick="adjustValue('cal-add-reps', -1)">-1</button>
+              <button class="btn-step" onclick="adjustValue('cal-add-reps', 1)">+1</button>
+            </div>
+          </div>
         </div>
-        <button class="btn-primary" onclick="addSetToDate('${dateStr}')" style="padding:6px; font-size:0.75rem;">Сохранить в историю</button>
+        <button class="btn-primary" onclick="addSetToDate('${dateStr}')" style="padding:6px; font-size:0.75rem; margin-top:4px;">Сохранить в историю</button>
       `;
       container.appendChild(addBlock);
 
@@ -1319,9 +1371,17 @@
     function addBodyRecord() {
       const weightInput = document.getElementById('input-body-weight');
       const waistInput = document.getElementById('input-body-waist');
+      const chestInput = document.getElementById('input-body-chest');
+      const hipsInput = document.getElementById('input-body-hips');
+      const bicepInput = document.getElementById('input-body-bicep');
+      const glutesInput = document.getElementById('input-body-glutes');
       
       const weight = parseFloat(weightInput ? weightInput.value : 0);
       const waist = parseFloat(waistInput ? waistInput.value : 0);
+      const chest = parseFloat(chestInput ? chestInput.value : 0);
+      const hips = parseFloat(hipsInput ? hipsInput.value : 0);
+      const bicep = parseFloat(bicepInput ? bicepInput.value : 0);
+      const glutes = parseFloat(glutesInput ? glutesInput.value : 0);
 
       if (isNaN(weight) || weight <= 0) {
         if (tg?.showAlert) tg.showAlert('Введите корректный вес тела');
@@ -1334,7 +1394,11 @@
         id: Date.now(),
         dateStr: now.toISOString().split('T')[0],
         weight,
-        waist: isNaN(waist) ? 0 : waist
+        waist: isNaN(waist) ? 0 : waist,
+        chest: isNaN(chest) ? 0 : chest,
+        hips: isNaN(hips) ? 0 : hips,
+        bicep: isNaN(bicep) ? 0 : bicep,
+        glutes: isNaN(glutes) ? 0 : glutes
       };
 
       bodyLogs.push(newRecord);
@@ -1343,8 +1407,13 @@
       renderBodyLogs();
       updateBodyChart();
       triggerHaptic();
+      
       if (weightInput) weightInput.value = '';
       if (waistInput) waistInput.value = '';
+      if (chestInput) chestInput.value = '';
+      if (hipsInput) hipsInput.value = '';
+      if (bicepInput) bicepInput.value = '';
+      if (glutesInput) glutesInput.value = '';
     }
 
     function renderBodyLogs() {
@@ -1359,10 +1428,17 @@
       container.innerHTML = '';
       [...bodyLogs].reverse().forEach(rec => {
         const formattedDate = new Date(rec.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+        const parts = [`<strong style="color: var(--accent);">${rec.weight} кг</strong>`];
+        if (rec.waist) parts.push(`тал: ${rec.waist}см`);
+        if (rec.chest) parts.push(`грудь: ${rec.chest}см`);
+        if (rec.hips) parts.push(`бедр: ${rec.hips}см`);
+        if (rec.bicep) parts.push(`биц: ${rec.bicep}см`);
+        if (rec.glutes) parts.push(`ягод: ${rec.glutes}см`);
+
         const row = document.createElement('div');
         row.className = 'set-item-row';
         row.innerHTML = `
-          <span>${formattedDate}: <strong style="color: var(--accent);">${rec.weight} кг</strong> ${rec.waist ? `(талия: ${rec.waist} см)` : ''}</span>
+          <span>${formattedDate}: ${parts.join(' • ')}</span>
           <button class="btn-close" onclick="deleteBodyRecord(${rec.id})" title="Удалить">&times;</button>
         `;
         container.appendChild(row);
@@ -1385,18 +1461,33 @@
       const ctx = chartCanvas.getContext('2d');
       if (bodyChartInstance) bodyChartInstance.destroy();
 
-      const labels = bodyLogs.map(r => new Date(r.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
-      const weights = bodyLogs.map(r => r.weight);
+      const metricSelect = document.getElementById('body-metric-select');
+      const selectedMetric = metricSelect ? metricSelect.value : 'weight';
+
+      const metricConfig = {
+        weight: { label: 'Вес тела (кг)', key: 'weight', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)' },
+        waist: { label: 'Талия (см)', key: 'waist', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.1)' },
+        chest: { label: 'Грудь (см)', key: 'chest', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.1)' },
+        hips: { label: 'Бедра (см)', key: 'hips', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+        bicep: { label: 'Бицепс (см)', key: 'bicep', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
+        glutes: { label: 'Ягодицы (см)', key: 'glutes', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' }
+      };
+
+      const cfg = metricConfig[selectedMetric] || metricConfig.weight;
+
+      const filtered = bodyLogs.filter(r => r[cfg.key] && r[cfg.key] > 0);
+      const labels = filtered.map(r => new Date(r.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+      const values = filtered.map(r => r[cfg.key]);
 
       bodyChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [{
-            label: 'Вес тела (кг)',
-            data: weights,
-            borderColor: '#22c55e',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            label: cfg.label,
+            data: values,
+            borderColor: cfg.color,
+            backgroundColor: cfg.bg,
             fill: true,
             tension: 0.3
           }]
