@@ -253,6 +253,18 @@
       margin-bottom: 8px;
     }
 
+    .trophy-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+    }
+
     nav { 
       background: var(--card-bg); 
       display: flex; 
@@ -319,7 +331,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.11</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.12</div>
     </div>
   </div>
 
@@ -393,7 +405,7 @@
       </div>
     </section>
 
-    <!-- Вкладка 3: Прогресс -->
+    <!-- Вкладка 3: Прогресс (и Трофейная комната) -->
     <section id="tab-progress" class="tab-content">
       <div class="card">
         <h2>Аналитика (Garmin Style)</h2>
@@ -404,20 +416,30 @@
         <label for="progress-exercise-select">Упражнение / Метрика</label>
         <select id="progress-exercise-select" onchange="updateChart()"></select>
       </div>
-      <div class="card card-scrollable" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div id="pr-card-container" style="width: 100%; margin-bottom: 8px; display: none;">
-          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; display: flex; justify-content: space-around; text-align: center;">
+
+      <div class="card" style="max-height: 160px; display: flex; flex-direction: column;">
+        <div id="pr-card-container" style="width: 100%; margin-bottom: 6px; display: none;">
+          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; justify-content: space-around; text-align: center;">
             <div>
-              <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
-              <div id="stat-max-weight" style="font-size: 0.95rem; font-weight: 800; color: var(--accent);">0 кг</div>
+              <div style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
+              <div id="stat-max-weight" style="font-size: 0.9rem; font-weight: 800; color: var(--accent);">0 кг</div>
             </div>
             <div>
-              <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Макс. 1RM</div>
-              <div id="stat-max-1rm" style="font-size: 0.95rem; font-weight: 800; color: var(--accent-green);">0 кг</div>
+              <div style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase;">Макс. 1RM</div>
+              <div id="stat-max-1rm" style="font-size: 0.9rem; font-weight: 800; color: var(--accent-green);">0 кг</div>
             </div>
           </div>
         </div>
-        <canvas id="progressChart" style="max-height: 180px; width: 100%;"></canvas>
+        <div style="flex: 1; min-height: 80px;">
+          <canvas id="progressChart" style="width: 100%; height: 100%;"></canvas>
+        </div>
+      </div>
+
+      <div class="card card-scrollable">
+        <h2>🏆 Трофейная комната (Личные рекорды)</h2>
+        <div id="trophy-room-list">
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Пока нет записей для рекордов</p>
+        </div>
       </div>
     </section>
 
@@ -458,7 +480,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.11";
+    const APP_VERSION = "v1.0.12";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"; // 1234
@@ -664,22 +686,18 @@
         let rawLogs = localStorage.getItem(PRIMARY_KEY_LOGS);
         let rawTemplates = localStorage.getItem(PRIMARY_KEY_TPL);
 
-        // 1. Загружаем то, что есть у пользователя в localStorage (гарантия сохранения его личных правок!)
         exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
         templates = rawTemplates ? JSON.parse(rawTemplates) : [...defaultTemplates];
 
-        // 2. Умное слияние (Smart Merge): если в новых версиях добавлены дефолтные упражнения, добавляем их, но НЕ затираем пользовательские кастомные упражнения и удаления
         exercises = exercises.filter(e => e !== "Сгибания ног в тренажере");
         defaultExercises.forEach(ex => {
           if (!exercises.includes(ex)) {
-            exercises.push(ex); // добавляем новые официальные тренажеры, если их нет у юзера
+            exercises.push(ex);
           }
         });
 
-        // 3. Проверка миграций при смене версии
         if (savedVersion !== APP_VERSION) {
-          // Здесь можно выполнять безопасные миграции структур данных, если они понадобятся в будущем
           localStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
         }
 
@@ -729,6 +747,7 @@
       if (tabName === 'progress') {
         renderProgressSelect();
         updateChart();
+        renderTrophyRoom();
       } else if (tabName === 'calendar') {
         initOrUpdateCalendar();
       } else if (tabName === 'templates') {
@@ -1150,6 +1169,39 @@
       });
     }
 
+    function renderTrophyRoom() {
+      const container = document.getElementById('trophy-room-list');
+      if (!container) return;
+
+      const exercisesWithLogs = exercises.filter(ex => workoutLogs.some(l => l.exercise === ex));
+
+      if (exercisesWithLogs.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">Пока нет записей для рекордов</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      exercisesWithLogs.forEach(ex => {
+        const logs = workoutLogs.filter(l => l.exercise === ex);
+        const maxWeight = Math.max(...logs.map(l => l.weight));
+        const max1RM = Math.max(...logs.map(l => calculate1RM(l.weight, l.reps)));
+
+        const item = document.createElement('div');
+        item.className = 'trophy-item';
+        item.innerHTML = `
+          <div>
+            <div style="font-weight: 700; color: var(--text-main);">${ex}</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Всего сетов: ${logs.length}</div>
+          </div>
+          <div style="text-align: right;">
+            <div><span style="color: var(--text-muted); font-size: 0.65rem;">MAX:</span> <strong style="color: var(--accent);">${maxWeight} кг</strong></div>
+            <div><span style="color: var(--text-muted); font-size: 0.65rem;">1RM:</span> <strong style="color: var(--accent-green);">${max1RM} кг</strong></div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
     let chartInstance = null;
     let currentFilter = 'week';
 
@@ -1216,8 +1268,8 @@
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
-              y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' }, beginAtZero: true }
+              x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
+              y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' }, beginAtZero: true }
             }
           }
         });
@@ -1260,8 +1312,8 @@
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
-              y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } }
+              x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
+              y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } }
             }
           }
         });
