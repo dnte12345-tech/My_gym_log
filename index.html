@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gym Log Mini App</title>
+  <title>Lift Lab Bot</title>
 
   <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -77,7 +77,6 @@
       width: auto;
     }
 
-    /* Модальное окно настроек */
     #settings-modal {
       position: fixed;
       top: 0;
@@ -102,19 +101,6 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       max-height: 85vh;
       overflow-y: auto;
-    }
-
-    .offline-badge {
-      display: none;
-      background: #f59e0b;
-      color: #000;
-      font-size: 0.65rem;
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 10px;
-      margin-top: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     .container { 
@@ -153,7 +139,7 @@
     }
 
     label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
-    select, input { 
+    select, input[type="text"], input[type="number"], input[type="password"] { 
       width: 100%; 
       padding: 8px 10px; 
       border-radius: 8px; 
@@ -166,6 +152,49 @@
     }
     select:focus, input:focus { border-color: var(--accent); }
     input::placeholder { color: var(--text-muted); opacity: 0.7; }
+
+    /* Кастомные чекбоксы в едином стиле */
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border-color);
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      background: var(--input-bg);
+      margin: 0;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .checkbox-item input[type="checkbox"]:checked {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+    .checkbox-item input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      color: var(--accent-text);
+      font-size: 12px;
+      font-weight: bold;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
 
     .row { display: flex; gap: 8px; }
     .row > div { flex: 1; }
@@ -294,7 +323,7 @@
   <!-- Окно авторизации -->
   <div id="auth-screen">
     <div class="card" style="width: 100%; max-width: 320px; text-align: center;">
-      <h2 style="margin-bottom: 12px; color: var(--accent);">Вход в Gym Log</h2>
+      <h2 style="margin-bottom: 12px; color: var(--accent);">Вход в Lift Lab</h2>
       <label style="text-align: left;">Логин</label>
       <input type="text" id="auth-login" placeholder="Введите логин" style="margin-bottom: 10px;">
       <label style="text-align: left;">Пароль</label>
@@ -331,12 +360,12 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.12</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.13</div>
     </div>
   </div>
 
   <header>
-    <h1>Gym Log</h1>
+    <h1>Lift Lab Bot</h1>
     <button class="gear-btn" onclick="toggleSettingsModal()" title="Настройки">⚙️</button>
   </header>
 
@@ -417,20 +446,20 @@
         <select id="progress-exercise-select" onchange="updateChart()"></select>
       </div>
 
-      <div class="card" style="max-height: 160px; display: flex; flex-direction: column;">
-        <div id="pr-card-container" style="width: 100%; margin-bottom: 6px; display: none;">
-          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; display: flex; justify-content: space-around; text-align: center;">
+      <div class="card" style="max-height: 150px; display: flex; flex-direction: column;">
+        <div id="pr-card-container" style="width: 100%; margin-bottom: 4px; display: none;">
+          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; justify-content: space-around; text-align: center;">
             <div>
-              <div style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
-              <div id="stat-max-weight" style="font-size: 0.9rem; font-weight: 800; color: var(--accent);">0 кг</div>
+              <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
+              <div id="stat-max-weight" style="font-size: 0.85rem; font-weight: 800; color: var(--accent);">0 кг</div>
             </div>
             <div>
-              <div style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase;">Макс. 1RM</div>
-              <div id="stat-max-1rm" style="font-size: 0.9rem; font-weight: 800; color: var(--accent-green);">0 кг</div>
+              <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. 1RM</div>
+              <div id="stat-max-1rm" style="font-size: 0.85rem; font-weight: 800; color: var(--accent-green);">0 кг</div>
             </div>
           </div>
         </div>
-        <div style="flex: 1; min-height: 80px;">
+        <div style="flex: 1; min-height: 70px;">
           <canvas id="progressChart" style="width: 100%; height: 100%;"></canvas>
         </div>
       </div>
@@ -458,6 +487,38 @@
         <div id="templates-list-manage"></div>
       </div>
     </section>
+
+    <!-- Вкладка 5: Тело (Антропометрия) -->
+    <section id="tab-body" class="tab-content">
+      <div class="card">
+        <h2>⚖️ Трекер параметров тела</h2>
+        <div class="row">
+          <div>
+            <label>Вес тела (кг)</label>
+            <input type="number" id="input-body-weight" placeholder="71.7" step="0.1">
+          </div>
+          <div>
+            <label>Талия / Живот (см)</label>
+            <input type="number" id="input-body-waist" placeholder="0" step="0.5">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addBodyRecord()" style="margin-top: 4px;">Записать параметры</button>
+      </div>
+
+      <div class="card" style="max-height: 150px; display: flex; flex-direction: column;">
+        <h2 style="font-size: 0.75rem; margin-bottom: 4px;">Динамика веса</h2>
+        <div style="flex: 1; min-height: 80px;">
+          <canvas id="bodyChart" style="width: 100%; height: 100%;"></canvas>
+        </div>
+      </div>
+
+      <div class="card card-scrollable">
+        <h2>История изменений</h2>
+        <div id="body-logs-list">
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Записей пока нет</p>
+        </div>
+      </div>
+    </section>
   </div>
 
   <nav>
@@ -477,10 +538,14 @@
       <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
       Шаблоны
     </button>
+    <button id="nav-body" onclick="switchTab('body')">
+      <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 7c-2.67 0-8 1.34-8 4v3h2v7h4v-5h2v5h4v-7h2v-3c0-2.66-5.33-4-8-4z"/></svg>
+      Тело
+    </button>
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.12";
+    const APP_VERSION = "v1.0.13";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"; // 1234
@@ -508,15 +573,6 @@
         }
       }
     }
-
-    function updateNetworkStatus() {
-      const offlineBadge = document.getElementById('offline-badge');
-      if (offlineBadge) {
-        offlineBadge.style.display = navigator.onLine ? 'none' : 'inline-block';
-      }
-    }
-    window.addEventListener('online', updateNetworkStatus);
-    window.addEventListener('offline', updateNetworkStatus);
 
     function updateLastActivity() {
       if (localStorage.getItem('gym_auth_logged') === 'true') {
@@ -672,11 +728,13 @@
     let exercises = [];
     let workoutLogs = [];
     let templates = [];
+    let bodyLogs = [];
 
     const userId = tg?.initDataUnsafe?.user?.id ? `_tg_${tg.initDataUnsafe.user.id}` : '';
     const PRIMARY_KEY_EX = `gym_master_exercises${userId}`;
     const PRIMARY_KEY_LOGS = `gym_master_logs${userId}`;
     const PRIMARY_KEY_TPL = `gym_master_templates${userId}`;
+    const PRIMARY_KEY_BODY = `gym_master_body${userId}`;
     const PRIMARY_KEY_VER = `gym_app_version${userId}`;
 
     function loadData() {
@@ -685,10 +743,12 @@
         let rawExercises = localStorage.getItem(PRIMARY_KEY_EX);
         let rawLogs = localStorage.getItem(PRIMARY_KEY_LOGS);
         let rawTemplates = localStorage.getItem(PRIMARY_KEY_TPL);
+        let rawBody = localStorage.getItem(PRIMARY_KEY_BODY);
 
         exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
         templates = rawTemplates ? JSON.parse(rawTemplates) : [...defaultTemplates];
+        bodyLogs = rawBody ? JSON.parse(rawBody) : [];
 
         exercises = exercises.filter(e => e !== "Сгибания ног в тренажере");
         defaultExercises.forEach(ex => {
@@ -707,6 +767,7 @@
         exercises = [...defaultExercises];
         workoutLogs = [];
         templates = [...defaultTemplates];
+        bodyLogs = [];
       }
     }
 
@@ -715,6 +776,7 @@
         localStorage.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
         localStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
         localStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
+        localStorage.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
         localStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
       } catch (e) {
         console.error('Ошибка записи мастер-данных:', e);
@@ -753,6 +815,9 @@
       } else if (tabName === 'templates') {
         renderTemplateCheckboxes();
         renderTemplatesList();
+      } else if (tabName === 'body') {
+        renderBodyLogs();
+        updateBodyChart();
       }
     }
 
@@ -995,16 +1060,13 @@
       if (!container) return;
       container.innerHTML = '';
       exercises.forEach((ex, idx) => {
-        const div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.alignItems = 'center';
-        div.style.gap = '8px';
-        div.style.marginBottom = '4px';
-        div.innerHTML = `
-          <input type="checkbox" id="tpl_ex_${idx}" value="${ex}" style="width: auto; margin-bottom: 0;">
-          <label for="tpl_ex_${idx}" style="font-size: 0.8rem; cursor: pointer; text-transform: none; font-weight: normal; margin-bottom: 0;">${ex}</label>
+        const label = document.createElement('label');
+        label.className = 'checkbox-item';
+        label.innerHTML = `
+          <span style="font-size: 0.8rem; color: var(--text-main);">${ex}</span>
+          <input type="checkbox" id="tpl_ex_${idx}" value="${ex}">
         `;
-        container.appendChild(div);
+        container.appendChild(label);
       });
     }
 
@@ -1126,10 +1188,10 @@
     }
 
     function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exercises, workoutLogs, templates }));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exercises, workoutLogs, templates, bodyLogs }));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `gym_log_backup_${new Date().toISOString().split('T')[0]}.json`);
+      downloadAnchor.setAttribute("download", `lift_lab_backup_${new Date().toISOString().split('T')[0]}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -1144,6 +1206,7 @@
             exercises = parsed.exercises;
             workoutLogs = parsed.workoutLogs;
             if (parsed.templates) templates = parsed.templates;
+            if (parsed.bodyLogs) bodyLogs = parsed.bodyLogs;
             saveData();
             renderExerciseSelects();
             renderTodaySets();
@@ -1155,6 +1218,104 @@
           else alert("Ошибка формата данных!");
         }
       }
+    }
+
+    // Антропометрия
+    function addBodyRecord() {
+      const weightInput = document.getElementById('input-body-weight');
+      const waistInput = document.getElementById('input-body-waist');
+      
+      const weight = parseFloat(weightInput ? weightInput.value : 0);
+      const waist = parseFloat(waistInput ? waistInput.value : 0);
+
+      if (isNaN(weight) || weight <= 0) {
+        if (tg?.showAlert) tg.showAlert('Введите корректный вес тела');
+        else alert('Введите корректный вес тела');
+        return;
+      }
+
+      const now = new Date();
+      const newRecord = {
+        id: Date.now(),
+        dateStr: now.toISOString().split('T')[0],
+        weight,
+        waist: isNaN(waist) ? 0 : waist
+      };
+
+      bodyLogs.push(newRecord);
+      bodyLogs.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
+      saveData();
+      renderBodyLogs();
+      updateBodyChart();
+      triggerHaptic();
+      if (weightInput) weightInput.value = '';
+      if (waistInput) waistInput.value = '';
+    }
+
+    function renderBodyLogs() {
+      const container = document.getElementById('body-logs-list');
+      if (!container) return;
+
+      if (bodyLogs.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">Записей пока нет</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      [...bodyLogs].reverse().forEach(rec => {
+        const formattedDate = new Date(rec.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+        const row = document.createElement('div');
+        row.className = 'set-item-row';
+        row.innerHTML = `
+          <span>${formattedDate}: <strong style="color: var(--accent);">${rec.weight} кг</strong> ${rec.waist ? `(талия: ${rec.waist} см)` : ''}</span>
+          <button class="btn-close" onclick="deleteBodyRecord(${rec.id})" title="Удалить">&times;</button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function deleteBodyRecord(id) {
+      triggerHaptic();
+      bodyLogs = bodyLogs.filter(r => r.id !== id);
+      saveData();
+      renderBodyLogs();
+      updateBodyChart();
+    }
+
+    let bodyChartInstance = null;
+    function updateBodyChart() {
+      if (typeof Chart === 'undefined') return;
+      const chartCanvas = document.getElementById('bodyChart');
+      if (!chartCanvas) return;
+      const ctx = chartCanvas.getContext('2d');
+      if (bodyChartInstance) bodyChartInstance.destroy();
+
+      const labels = bodyLogs.map(r => new Date(r.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+      const weights = bodyLogs.map(r => r.weight);
+
+      bodyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Вес тела (кг)',
+            data: weights,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
+            y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } }
+          }
+        }
+      });
     }
 
     function renderProgressSelect() {
@@ -1325,7 +1486,6 @@
     loadData();
     renderExerciseSelects();
     renderTodaySets();
-    updateNetworkStatus();
     const verDisplay = document.getElementById('app-version-display');
     if (verDisplay) verDisplay.textContent = `Версия приложения: ${APP_VERSION}`;
   </script>
