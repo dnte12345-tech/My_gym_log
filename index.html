@@ -293,7 +293,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно настроек (по кнопке шестеренки) -->
+  <!-- Модальное окно настроек -->
   <div id="settings-modal">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -319,7 +319,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.10</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.11</div>
     </div>
   </div>
 
@@ -458,7 +458,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.10";
+    const APP_VERSION = "v1.0.11";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"; // 1234
@@ -655,28 +655,40 @@
     const PRIMARY_KEY_EX = `gym_master_exercises${userId}`;
     const PRIMARY_KEY_LOGS = `gym_master_logs${userId}`;
     const PRIMARY_KEY_TPL = `gym_master_templates${userId}`;
+    const PRIMARY_KEY_VER = `gym_app_version${userId}`;
 
     function loadData() {
       try {
+        const savedVersion = localStorage.getItem(PRIMARY_KEY_VER) || 'v1.0.8';
         let rawExercises = localStorage.getItem(PRIMARY_KEY_EX);
         let rawLogs = localStorage.getItem(PRIMARY_KEY_LOGS);
         let rawTemplates = localStorage.getItem(PRIMARY_KEY_TPL);
 
-        exercises = rawExercises ? JSON.parse(rawExercises) : defaultExercises;
+        // 1. Загружаем то, что есть у пользователя в localStorage (гарантия сохранения его личных правок!)
+        exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
-        templates = rawTemplates ? JSON.parse(rawTemplates) : defaultTemplates;
+        templates = rawTemplates ? JSON.parse(rawTemplates) : [...defaultTemplates];
 
+        // 2. Умное слияние (Smart Merge): если в новых версиях добавлены дефолтные упражнения, добавляем их, но НЕ затираем пользовательские кастомные упражнения и удаления
         exercises = exercises.filter(e => e !== "Сгибания ног в тренажере");
         defaultExercises.forEach(ex => {
-          if (!exercises.includes(ex)) exercises.push(ex);
+          if (!exercises.includes(ex)) {
+            exercises.push(ex); // добавляем новые официальные тренажеры, если их нет у юзера
+          }
         });
+
+        // 3. Проверка миграций при смене версии
+        if (savedVersion !== APP_VERSION) {
+          // Здесь можно выполнять безопасные миграции структур данных, если они понадобятся в будущем
+          localStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
+        }
 
         saveData();
       } catch (e) {
-        console.warn('Внимание: сбой чтения основной БД.', e);
-        exercises = defaultExercises;
+        console.warn('Внимание: сбой чтения основной БД, восстановление дефолтов.', e);
+        exercises = [...defaultExercises];
         workoutLogs = [];
-        templates = defaultTemplates;
+        templates = [...defaultTemplates];
       }
     }
 
@@ -685,6 +697,7 @@
         localStorage.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
         localStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
         localStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
+        localStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
       } catch (e) {
         console.error('Ошибка записи мастер-данных:', e);
       }
