@@ -59,8 +59,50 @@
       flex-shrink: 0;
       padding-top: calc(env(safe-area-inset-top) + 6px);
       position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     header h1 { font-size: 1.05rem; font-weight: 800; letter-spacing: 1px; color: var(--accent); text-transform: uppercase; }
+
+    .gear-btn {
+      position: absolute;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 4px;
+      width: auto;
+    }
+
+    /* Модальное окно настроек */
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100dvh;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #settings-modal.active { display: flex; }
+    .modal-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
 
     .offline-badge {
       display: none;
@@ -187,6 +229,30 @@
       text-transform: uppercase;
     }
 
+    .template-card {
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .template-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .template-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--accent);
+    }
+    .template-exercises-list {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
     nav { 
       background: var(--card-bg); 
       display: flex; 
@@ -227,15 +293,56 @@
     </div>
   </div>
 
+  <!-- Модальное окно настроек (по кнопке шестеренки) -->
+  <div id="settings-modal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 style="color: var(--accent);">Настройки</h2>
+        <button class="btn-close" onclick="toggleSettingsModal()">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label>База тренажеров</label>
+        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+          <input type="text" id="new-exercise-name" placeholder="Новый тренажер" style="margin-bottom: 0;">
+          <button class="btn-success" onclick="addNewExercise()" style="width: 90px; flex-shrink: 0; font-size: 0.75rem;">+ Добавить</button>
+        </div>
+        <div id="exercise-list-manage" style="max-height: 120px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;"></div>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label>Резервное копирование</label>
+        <div class="row" style="margin-bottom: 6px;">
+          <button class="btn-primary" onclick="exportData()">Экспорт JSON</button>
+          <button class="btn-step" onclick="importData()" style="padding: 10px;">Импорт</button>
+        </div>
+      </div>
+
+      <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.10</div>
+    </div>
+  </div>
+
   <header>
     <h1>Gym Log</h1>
-    <div id="offline-badge" class="offline-badge">Офлайн режим</div>
+    <button class="gear-btn" onclick="toggleSettingsModal()" title="Настройки">⚙️</button>
   </header>
 
   <div class="container">
     
     <!-- Вкладка 1: Тренировка -->
     <section id="tab-workout" class="tab-content active">
+      <div class="card">
+        <h2>Быстрый выбор по шаблону</h2>
+        <div class="row">
+          <div>
+            <select id="active-template-select" onchange="filterExercisesByTemplate()">
+              <option value="ALL">📋 Все упражнения (Без фильтра)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Запись подхода</h2>
         <label for="exercise-select">Тренажер / Упражнение</label>
@@ -314,27 +421,19 @@
       </div>
     </section>
 
-    <!-- Вкладка 4: Настройки -->
-    <section id="tab-manage" class="tab-content">
+    <!-- Вкладка 4: Шаблоны -->
+    <section id="tab-templates" class="tab-content">
       <div class="card">
-        <h2>Добавить новый тренажер</h2>
-        <input type="text" id="new-exercise-name" placeholder="Название тренажера">
-        <button class="btn-success" onclick="addNewExercise()">Добавить в базу</button>
-      </div>
-      
-      <div class="card card-scrollable">
-        <h2>База тренажеров</h2>
-        <div id="exercise-list-manage"></div>
+        <h2>Создать шаблон тренировки</h2>
+        <input type="text" id="new-template-name" placeholder="Название шаблона (напр. Спина / Бицепс)">
+        <label>Выберите упражнения в шаблон</label>
+        <div id="template-checkboxes" style="max-height: 120px; overflow-y: auto; margin-bottom: 8px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px;"></div>
+        <button class="btn-success" onclick="addNewTemplate()">Сохранить шаблон</button>
       </div>
 
-      <div class="card">
-        <h2>Резервная копия данных</h2>
-        <div class="row" style="margin-bottom: 8px;">
-          <button class="btn-primary" onclick="exportData()">Экспорт</button>
-          <button class="btn-step" onclick="importData()">Импорт</button>
-        </div>
-        <button style="background: var(--danger); color: #fff;" onclick="logout()">Выйти из системы</button>
-        <div class="version-info" id="app-version-display">Версия приложения: v1.0.8</div>
+      <div class="card card-scrollable">
+        <h2>Мои шаблоны</h2>
+        <div id="templates-list-manage"></div>
       </div>
     </section>
   </div>
@@ -352,14 +451,14 @@
       <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
       Прогресс
     </button>
-    <button id="nav-manage" onclick="switchTab('manage')">
-      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6z"/></svg>
-      Настройки
+    <button id="nav-templates" onclick="switchTab('templates')">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+      Шаблоны
     </button>
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.8";
+    const APP_VERSION = "v1.0.10";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"; // 1234
@@ -375,6 +474,17 @@
           .then(reg => console.log('Service Worker зарегистрирован:', reg.scope))
           .catch(err => console.warn('Ошибка Service Worker:', err));
       });
+    }
+
+    function toggleSettingsModal() {
+      triggerHaptic();
+      const modal = document.getElementById('settings-modal');
+      if (modal) {
+        modal.classList.toggle('active');
+        if (modal.classList.contains('active')) {
+          renderManageList();
+        }
+      }
     }
 
     function updateNetworkStatus() {
@@ -509,6 +619,7 @@
       if (passInput) passInput.value = '';
       const authScreen = document.getElementById('auth-screen');
       if (authScreen) authScreen.style.display = 'flex';
+      toggleSettingsModal();
       triggerHaptic();
     }
 
@@ -523,39 +634,39 @@
       "Тяга горизонтальная на спину", "Тяга вертикальная на спину", "Подтягивания в гравитроне"
     ];
 
+    const defaultTemplates = [
+      {
+        id: "tpl_back_biceps",
+        name: "Спина / Бицепс",
+        exercises: ["Тяга вертикальная на спину", "Тяга горизонтальная на спину", "Подтягивания в гравитроне", "Подъем штанги на бицепс", "Бицепс в блоке"]
+      },
+      {
+        id: "tpl_legs_shoulders",
+        name: "Ноги / Плечи",
+        exercises: ["Приседания в Смите", "Румынская тяга в Смите", "Разгибания ног", "Сгибания ног на ягодицы", "Плечи с гантелями", "Жим плечи в блоке"]
+      }
+    ];
+
     let exercises = [];
     let workoutLogs = [];
+    let templates = [];
 
     const userId = tg?.initDataUnsafe?.user?.id ? `_tg_${tg.initDataUnsafe.user.id}` : '';
     const PRIMARY_KEY_EX = `gym_master_exercises${userId}`;
     const PRIMARY_KEY_LOGS = `gym_master_logs${userId}`;
-    const LEGACY_KEYS_EX = [`gym_exercises${userId}`, 'gym_exercises'];
-    const LEGACY_KEYS_LOGS = [`gym_logs${userId}`, 'gym_logs'];
+    const PRIMARY_KEY_TPL = `gym_master_templates${userId}`;
 
     function loadData() {
       try {
         let rawExercises = localStorage.getItem(PRIMARY_KEY_EX);
         let rawLogs = localStorage.getItem(PRIMARY_KEY_LOGS);
-
-        if (!rawExercises) {
-          for (let key of LEGACY_KEYS_EX) {
-            const found = localStorage.getItem(key);
-            if (found) { rawExercises = found; break; }
-          }
-        }
-
-        if (!rawLogs) {
-          for (let key of LEGACY_KEYS_LOGS) {
-            const found = localStorage.getItem(key);
-            if (found) { rawLogs = found; break; }
-          }
-        }
+        let rawTemplates = localStorage.getItem(PRIMARY_KEY_TPL);
 
         exercises = rawExercises ? JSON.parse(rawExercises) : defaultExercises;
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
+        templates = rawTemplates ? JSON.parse(rawTemplates) : defaultTemplates;
 
         exercises = exercises.filter(e => e !== "Сгибания ног в тренажере");
-
         defaultExercises.forEach(ex => {
           if (!exercises.includes(ex)) exercises.push(ex);
         });
@@ -563,13 +674,9 @@
         saveData();
       } catch (e) {
         console.warn('Внимание: сбой чтения основной БД.', e);
-        try {
-          const rawEmergency = localStorage.getItem(PRIMARY_KEY_LOGS) || localStorage.getItem('gym_logs');
-          if (rawEmergency) localStorage.setItem('gym_emergency_backup', rawEmergency);
-        } catch(ex) {}
-
         exercises = defaultExercises;
         workoutLogs = [];
+        templates = defaultTemplates;
       }
     }
 
@@ -577,6 +684,7 @@
       try {
         localStorage.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
         localStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
+        localStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
       } catch (e) {
         console.error('Ошибка записи мастер-данных:', e);
       }
@@ -610,20 +718,49 @@
         updateChart();
       } else if (tabName === 'calendar') {
         initOrUpdateCalendar();
+      } else if (tabName === 'templates') {
+        renderTemplateCheckboxes();
+        renderTemplatesList();
       }
     }
 
-    function renderExerciseSelects() {
+    function renderTemplateSelect() {
+      const select = document.getElementById('active-template-select');
+      if (!select) return;
+      select.innerHTML = '<option value="ALL">📋 Все упражнения (Без фильтра)</option>';
+      templates.forEach(tpl => {
+        const opt = document.createElement('option');
+        opt.value = tpl.id;
+        opt.textContent = `🎯 ${tpl.name}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function filterExercisesByTemplate() {
+      triggerHaptic();
+      const tplId = document.getElementById('active-template-select').value;
       const select = document.getElementById('exercise-select');
       if (!select) return;
+
+      let listToRender = exercises;
+      if (tplId !== 'ALL') {
+        const found = templates.find(t => t.id === tplId);
+        if (found) listToRender = found.exercises;
+      }
+
       select.innerHTML = '';
-      exercises.forEach(ex => {
+      listToRender.forEach(ex => {
         const opt = document.createElement('option');
         opt.value = ex;
         opt.textContent = ex;
         select.appendChild(opt);
       });
       onExerciseChange();
+    }
+
+    function renderExerciseSelects() {
+      renderTemplateSelect();
+      filterExercisesByTemplate();
       renderManageList();
     }
 
@@ -821,6 +958,101 @@
       });
     }
 
+    function renderTemplateCheckboxes() {
+      const container = document.getElementById('template-checkboxes');
+      if (!container) return;
+      container.innerHTML = '';
+      exercises.forEach((ex, idx) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.gap = '8px';
+        div.style.marginBottom = '4px';
+        div.innerHTML = `
+          <input type="checkbox" id="tpl_ex_${idx}" value="${ex}" style="width: auto; margin-bottom: 0;">
+          <label for="tpl_ex_${idx}" style="font-size: 0.8rem; cursor: pointer; text-transform: none; font-weight: normal; margin-bottom: 0;">${ex}</label>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addNewTemplate() {
+      const nameInput = document.getElementById('new-template-name');
+      const name = nameInput ? nameInput.value.trim() : '';
+      if (!name) {
+        if (tg?.showAlert) tg.showAlert('Введите название шаблона');
+        else alert('Введите название шаблона');
+        return;
+      }
+
+      const selected = [];
+      exercises.forEach((ex, idx) => {
+        const chk = document.getElementById(`tpl_ex_${idx}`);
+        if (chk && chk.checked) selected.push(ex);
+      });
+
+      if (selected.length === 0) {
+        if (tg?.showAlert) tg.showAlert('Выберите хотя бы одно упражнение');
+        else alert('Выберите хотя бы одно упражнение');
+        return;
+      }
+
+      const newTpl = {
+        id: `tpl_${Date.now()}`,
+        name,
+        exercises: selected
+      };
+
+      templates.push(newTpl);
+      saveData();
+      renderTemplatesList();
+      renderTemplateSelect();
+      nameInput.value = '';
+      triggerHaptic();
+    }
+
+    function renderTemplatesList() {
+      const container = document.getElementById('templates-list-manage');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (templates.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">Шаблонов пока нет</p>';
+        return;
+      }
+
+      templates.forEach(tpl => {
+        const card = document.createElement('div');
+        card.className = 'template-card';
+        card.innerHTML = `
+          <div class="template-card-header">
+            <span class="template-title">${tpl.name}</span>
+            <button class="btn-close" onclick="removeTemplate('${tpl.id}')" title="Удалить шаблон">&times;</button>
+          </div>
+          <div class="template-exercises-list">${tpl.exercises.join(' • ')}</div>
+          <button class="btn-primary" onclick="startWorkoutFromTemplate('${tpl.id}')" style="padding: 6px; font-size: 0.75rem;">Запустить тренировку</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function removeTemplate(id) {
+      templates = templates.filter(t => t.id !== id);
+      saveData();
+      renderTemplatesList();
+      renderTemplateSelect();
+      triggerHaptic();
+    }
+
+    function startWorkoutFromTemplate(id) {
+      switchTab('workout');
+      const select = document.getElementById('active-template-select');
+      if (select) {
+        select.value = id;
+        filterExercisesByTemplate();
+      }
+    }
+
     function renderManageList() {
       const container = document.getElementById('exercise-list-manage');
       if (!container) return;
@@ -830,7 +1062,7 @@
         item.className = 'set-item-row';
         item.style.marginBottom = '4px';
         item.style.borderRadius = '6px';
-        item.style.background = 'var(--input-bg)';
+        item.style.background = 'var(--bg-color)';
         item.innerHTML = `
           <span>${ex}</span>
           <button class="btn-close" onclick="removeExercise('${ex}')" title="Удалить тренажер">&times;</button>
@@ -847,6 +1079,7 @@
         exercises.push(name);
         saveData();
         renderExerciseSelects();
+        renderTemplateCheckboxes();
         input.value = '';
         triggerHaptic();
       }
@@ -856,11 +1089,12 @@
       exercises = exercises.filter(e => e !== name);
       saveData();
       renderExerciseSelects();
+      renderTemplateCheckboxes();
       triggerHaptic();
     }
 
     function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exercises, workoutLogs }));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exercises, workoutLogs, templates }));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `gym_log_backup_${new Date().toISOString().split('T')[0]}.json`);
@@ -877,6 +1111,7 @@
           if (parsed.exercises && parsed.workoutLogs) {
             exercises = parsed.exercises;
             workoutLogs = parsed.workoutLogs;
+            if (parsed.templates) templates = parsed.templates;
             saveData();
             renderExerciseSelects();
             renderTodaySets();
