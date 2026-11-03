@@ -94,19 +94,6 @@
       --border-color: rgba(244, 63, 94, 0.3);
     }
 
-    [data-theme="clean-white"] {
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --input-bg: #f8fafc;
-      --accent: #2563eb;
-      --accent-text: #ffffff;
-      --accent-green: #16a34a;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --danger: #dc2626;
-      --border-color: rgba(203, 213, 225, 0.8);
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Roboto, sans-serif; }
     
     html, body {
@@ -431,7 +418,6 @@
           <option value="obsidian-gold">👑 Obsidian Gold (Черный с золотом)</option>
           <option value="deep-amethyst">🔮 Deep Amethyst (Королевский пурпур)</option>
           <option value="cyberpunk-red">🔥 Cyberpunk Red (Угольный алый)</option>
-          <option value="clean-white">☀️ Clean White (Чистая белая)</option>
         </select>
       </div>
 
@@ -446,7 +432,7 @@
 
       <div style="margin-bottom: 12px;">
         <label>Облачная синхронизация</label>
-        <button class="btn-primary" onclick="forceCloudReload()" style="margin-bottom: 6px; padding: 8px; font-size: 0.75rem;">🔄 Загрузить из общего облака</button>
+        <button class="btn-primary" onclick="forceCloudReload()" style="margin-bottom: 6px; padding: 8px; font-size: 0.75rem;">🔄 Принудительно выгрузить из облака</button>
         <div class="row">
           <button class="btn-step" onclick="exportData()" style="padding: 8px; font-size: 0.75rem;">Экспорт JSON</button>
           <button class="btn-step" onclick="importData()" style="padding: 8px; font-size: 0.75rem;">Импорт JSON</button>
@@ -454,7 +440,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.27</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.26</div>
     </div>
   </div>
 
@@ -775,7 +761,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.27";
+    const APP_VERSION = "v1.0.26";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -799,31 +785,28 @@
       tg.expand();
     }
 
-    // Жесткое облачное хранилище (Telegram Cloud Storage)
+    // Хранилище Telegram Cloud Storage (с фолбеком на localStorage)
     const cloudStorage = {
       getItem: (key) => {
         return new Promise((resolve) => {
           if (tg?.CloudStorage?.getItem) {
             tg.CloudStorage.getItem(key, (err, value) => {
-              if (err) {
-                console.warn("CloudStorage getItem error for key:", key, err);
-                resolve(null);
+              if (err || !value) {
+                resolve(localStorage.getItem(key));
               } else {
-                resolve(value !== undefined ? value : null);
+                resolve(value);
               }
             });
           } else {
-            // Вне Telegram возвращаем null, чтобы форсировать дефолты или локальный бэкап при необходимости
             resolve(localStorage.getItem(key));
           }
         });
       },
       setItem: (key, value) => {
         return new Promise((resolve) => {
-          localStorage.setItem(key, value); // дублируем локально для страховки
+          localStorage.setItem(key, value);
           if (tg?.CloudStorage?.setItem) {
             tg.CloudStorage.setItem(key, value, (err, success) => {
-              if (err) console.warn("CloudStorage setItem error for key:", key, err);
               resolve(success);
             });
           } else {
@@ -998,21 +981,35 @@
     let templates = [];
     let bodyLogs = [];
 
-    // Единый ключ для облака Telegram (привязан строго к аккаунту Telegram, игнорирует локальный кэш устройств)
-    const PRIMARY_KEY_EX = `lift_lab_shared_exercises`;
-    const PRIMARY_KEY_LOGS = `lift_lab_shared_logs`;
-    const PRIMARY_KEY_TPL = `lift_lab_shared_templates`;
-    const PRIMARY_KEY_BODY = `lift_lab_shared_body`;
+    const userId = tg?.initDataUnsafe?.user?.id ? `_tg_${tg.initDataUnsafe.user.id}` : '';
+    const PRIMARY_KEY_EX = `gym_master_exercises${userId}`;
+    const PRIMARY_KEY_LOGS = `gym_master_logs${userId}`;
+    const PRIMARY_KEY_TPL = `gym_master_templates${userId}`;
+    const PRIMARY_KEY_BODY = `gym_master_body${userId}`;
+    const PRIMARY_KEY_VER = `gym_app_version${userId}`;
 
     async function loadData() {
       try {
-        // Принудительно запрашиваем актуальные данные с серверов Telegram Cloud Storage
+        await new Promise((resolve) => {
+          if (tg?.CloudStorage?.getKeys) {
+            tg.CloudStorage.getKeys(() => resolve());
+          } else {
+            resolve();
+          }
+        });
+
         let rawExercises = await cloudStorage.getItem(PRIMARY_KEY_EX);
         let rawLogs = await cloudStorage.getItem(PRIMARY_KEY_LOGS);
         let rawTemplates = await cloudStorage.getItem(PRIMARY_KEY_TPL);
         let rawBody = await cloudStorage.getItem(PRIMARY_KEY_BODY);
 
-        // Если в облаке пусто, но есть старые локальные ключи или дефолты — инициализируем облако
+        if (!rawLogs && userId) {
+          rawExercises = rawExercises || await cloudStorage.getItem('gym_master_exercises');
+          rawLogs = await cloudStorage.getItem('gym_master_logs');
+          rawTemplates = rawTemplates || await cloudStorage.getItem('gym_master_templates');
+          rawBody = rawBody || await cloudStorage.getItem('gym_master_body');
+        }
+
         exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
         templates = rawTemplates ? JSON.parse(rawTemplates) : [...defaultTemplates];
@@ -1025,7 +1022,6 @@
           }
         });
 
-        // Сразу записываем актуальное состояние в облако и локально
         await saveData();
         await loadTheme();
         
@@ -1044,10 +1040,8 @@
     async function forceCloudReload() {
       triggerHaptic();
       await loadData();
-      renderTodaySets();
-      if (typeof initOrUpdateCalendar === 'function') initOrUpdateCalendar();
-      if (tg?.showAlert) tg.showAlert("Данные успешно загружены из общего облака Telegram!");
-      else alert("Данные успешно загружены из общего облака Telegram!");
+      if (tg?.showAlert) tg.showAlert("Данные успешно синхронизированы из облака Telegram!");
+      else alert("Данные успешно синхронизированы из облака Telegram!");
     }
 
     async function saveData() {
@@ -1056,17 +1050,17 @@
         await cloudStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
         await cloudStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
         await cloudStorage.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
+        await cloudStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
       } catch (e) {
-        console.error('Ошибка записи мастер-данных в облако:', e);
+        console.error('Ошибка записи мастер-данных:', e);
       }
     }
 
     document.addEventListener('visibilitychange', () => { 
-      if (document.hidden) {
-        saveData();
-      } else {
+      if (document.hidden) saveData();
+      else {
         updateLastActivity();
-        loadData(); // При возвращении в приложение на любом устройстве подтягиваем свежие данные из облака
+        loadData();
       }
     });
     window.addEventListener('pagehide', saveData);
@@ -1650,8 +1644,8 @@
             await saveData();
             renderExerciseSelects();
             renderTodaySets();
-            if (tg?.showAlert) tg.showAlert("Данные успешно восстановлены в общее облако!");
-            else alert("Данные успешно восстановлены в общее облако!");
+            if (tg?.showAlert) tg.showAlert("Данные успешно восстановлены!");
+            else alert("Данные успешно восстановлены!");
           }
         } catch (e) {
           if (tg?.showAlert) tg.showAlert("Ошибка формата данных!");
@@ -2078,7 +2072,7 @@
         const d = new Date();
         d.setDate(now.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const saved = await cloudStorage.getItem(`lift_lab_kbdz_${dateStr}`);
+        const saved = await cloudStorage.getItem(`gym_kbdz_${dateStr}`);
 
         if (saved) {
           try {
@@ -2096,7 +2090,7 @@
       }
 
       const currentIn = parseFloat(document.getElementById('input-kcal-in')?.value) || 0;
-      const todaySaved = await cloudStorage.getItem(`lift_lab_kbdz_${now.toISOString().split('T')[0]}`);
+      const todaySaved = await cloudStorage.getItem(`gym_kbdz_${now.toISOString().split('T')[0]}`);
       if (currentIn > 0 && !todaySaved) {
         const extraAct = parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0;
         const dayBurned = tdee + extraAct;
@@ -2142,7 +2136,7 @@
         activity: document.getElementById('user-activity')?.value
       };
 
-      await cloudStorage.setItem(`lift_lab_kbdz_${todayStr}`, JSON.stringify(data));
+      await cloudStorage.setItem(`gym_kbdz_${todayStr}`, JSON.stringify(data));
       calculateWeeklyBalance();
       if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен в облаке Telegram!');
       else alert('Дневник КБЖУ сохранен!');
@@ -2150,7 +2144,7 @@
 
     async function loadTodayKBDZData() {
       const todayStr = new Date().toISOString().split('T')[0];
-      const saved = await cloudStorage.getItem(`lift_lab_kbdz_${todayStr}`);
+      const saved = await cloudStorage.getItem(`gym_kbdz_${todayStr}`);
       if (saved) {
         try {
           const d = JSON.parse(saved);
