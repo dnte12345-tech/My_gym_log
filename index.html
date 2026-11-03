@@ -359,7 +359,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.15</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.17</div>
     </div>
   </div>
 
@@ -489,8 +489,8 @@
 
     <!-- Вкладка 5: Антропометрия -->
     <section id="tab-body" class="tab-content">
-      <div class="card">
-        <h2>⚖️ Антропометрия</h2>
+      <div class="card card-scrollable">
+        <h2>⚖️ Антропометрия и Баланс КБЖУ</h2>
         <div class="row" style="margin-bottom:4px;">
           <div>
             <label>Вес тела (кг)</label>
@@ -511,7 +511,7 @@
             <input type="number" id="input-body-hips" placeholder="0" step="0.5">
           </div>
         </div>
-        <div class="row" style="margin-bottom:4px;">
+        <div class="row" style="margin-bottom:6px;">
           <div>
             <label>Бицепс (см)</label>
             <input type="number" id="input-body-bicep" placeholder="0" step="0.5">
@@ -521,10 +521,35 @@
             <input type="number" id="input-body-glutes" placeholder="0" step="0.5">
           </div>
         </div>
-        <button class="btn-primary" onclick="addBodyRecord()" style="margin-top: 4px;">Записать параметры</button>
+        <button class="btn-primary" onclick="addBodyRecord()" style="margin-bottom: 8px;">Записать параметры</button>
+
+        <hr style="border:0; border-top:1px solid var(--border-color); margin: 8px 0;">
+
+        <h2 style="font-size: 0.8rem; color: var(--accent);">🍏 Энергетический баланс за сегодня</h2>
+        <div class="row" style="margin-bottom:4px;">
+          <div>
+            <label>Съедено (ккал)</label>
+            <input type="number" id="input-calories-in" placeholder="2500" oninput="calculateEnergyBalance()">
+          </div>
+          <div>
+            <label>Активные ккал (Watch)</label>
+            <input type="number" id="input-calories-active" placeholder="0" oninput="calculateEnergyBalance()">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:4px;">
+          <div>
+            <label>Шаги</label>
+            <input type="number" id="input-steps" placeholder="0" oninput="calculateEnergyBalance()">
+          </div>
+          <div>
+            <label>Баланс (Дефицит/Профицит)</label>
+            <div id="energy-balance-display" style="padding: 8px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.85rem; font-weight: bold; text-align: center; color: var(--accent-green);">0 ккал</div>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="importFromAppleHealthClipboard()" style="background: var(--accent-green); margin-top: 4px; font-size: 0.75rem;">📥 Импорт активных ккал и шагов из Apple Health</button>
       </div>
 
-      <div class="card" style="max-height: 175px; display: flex; flex-direction: column;">
+      <div class="card" style="max-height: 160px; display: flex; flex-direction: column;">
         <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 4px;">
           <h2 style="font-size: 0.75rem; margin-bottom: 0;">Динамика замеров</h2>
           <select id="body-metric-select" onchange="updateBodyChart()" style="width: auto; padding: 2px 6px; font-size: 0.75rem; margin-bottom: 0;">
@@ -536,15 +561,8 @@
             <option value="glutes">🍑 Ягодицы (см)</option>
           </select>
         </div>
-        <div style="flex: 1; min-height: 100px;">
+        <div style="flex: 1; min-height: 90px;">
           <canvas id="bodyChart" style="width: 100%; height: 100%;"></canvas>
-        </div>
-      </div>
-
-      <div class="card card-scrollable">
-        <h2>История изменений</h2>
-        <div id="body-logs-list">
-          <p style="color: var(--text-muted); font-size: 0.8rem;">Записей пока нет</p>
         </div>
       </div>
     </section>
@@ -574,7 +592,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.15";
+    const APP_VERSION = "v1.0.17";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
@@ -1003,6 +1021,49 @@
           details.appendChild(row);
         });
         container.appendChild(details);
+      });
+
+      // Кнопка экспорта в Apple Health через Shortcut
+      const exportBtn = document.createElement('button');
+      exportBtn.className = 'btn-primary';
+      exportBtn.style.cssText = 'margin-top: 8px; font-size: 0.75rem; background: var(--accent-green);';
+      exportBtn.innerHTML = '🍎 Экспорт в Apple Health (Shortcut)';
+      exportBtn.onclick = exportTodayToAppleHealth;
+      container.appendChild(exportBtn);
+    }
+
+    function exportTodayToAppleHealth() {
+      triggerHaptic();
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayLogs = workoutLogs.filter(l => l.dateStr === todayStr);
+      if (todayLogs.length === 0) return;
+
+      let totalTonnage = 0;
+      const lines = [`🏋️ Тренировка Lift Lab (${todayStr})`];
+      
+      const grouped = {};
+      todayLogs.forEach(set => {
+        if (!grouped[set.exercise]) grouped[set.exercise] = [];
+        grouped[set.exercise].push(set);
+        totalTonnage += set.weight * set.reps;
+      });
+
+      Object.keys(grouped).forEach(exName => {
+        const sets = grouped[exName];
+        const setsStr = sets.map(s => `${s.weight}кг×${s.reps}`).join(', ');
+        lines.push(`• ${exName}: ${setsStr}`);
+      });
+      lines.push(`📊 Общий тоннаж: ${totalTonnage} кг`);
+
+      const textToCopy = lines.join('\n');
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const msg = 'Данные тренировки скопированы в буфер обмена!\n\nСоздайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
+        if (tg?.showAlert) tg.showAlert(msg);
+        else alert(msg);
+      }).catch(err => {
+        console.error('Ошибка копирования:', err);
+        prompt('Скопируйте текст тренировки для импорта:', textToCopy);
       });
     }
 
@@ -1667,11 +1728,118 @@
       }
     }
 
+    // Энергетический баланс и Apple Health
+    const BMR_DEFAULT = 1686; // Базовый метаболизм (Миттеран-Сан Жеор для 71.7 кг, 179 см, 31 год)
+
+    function calculateEnergyBalance() {
+      const calsInInput = document.getElementById('input-calories-in');
+      const calsActiveInput = document.getElementById('input-calories-active');
+      const balanceDisplay = document.getElementById('energy-balance-display');
+      if (!calsInInput || !calsActiveInput || !balanceDisplay) return;
+
+      const calsIn = parseFloat(calsInInput.value) || 0;
+      const calsActive = parseFloat(calsActiveInput.value) || 0;
+      const totalBurned = BMR_DEFAULT + calsActive;
+      const balance = calsIn - totalBurned;
+
+      if (calsIn === 0 && calsActive === 0) {
+        balanceDisplay.textContent = '0 ккал';
+        balanceDisplay.style.color = 'var(--text-muted)';
+        return;
+      }
+
+      if (balance > 0) {
+        balanceDisplay.textContent = `+${Math.round(balance)} ккал (Профицит)`;
+        balanceDisplay.style.color = '#38bdf8';
+      } else {
+        balanceDisplay.textContent = `${Math.round(balance)} ккал (Дефицит)`;
+        balanceDisplay.style.color = '#22c55e';
+      }
+
+      // Сохраним в localStorage за сегодня
+      const todayStr = new Date().toISOString().split('T')[0];
+      const healthData = {
+        calsIn,
+        calsActive,
+        steps: parseInt(document.getElementById('input-steps')?.value || 0),
+        balance: Math.round(balance)
+      };
+      localStorage.setItem(`gym_health_${todayStr}`, JSON.stringify(healthData));
+    }
+
+    async function importFromAppleHealthClipboard() {
+      triggerHaptic();
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) {
+          alert('Буфер обмена пуст. Сначала запустите Быструю команду на iPhone.');
+          return;
+        }
+
+        // Попробуем распарсить JSON или пары key:val / числа
+        let kcal = 0;
+        let steps = 0;
+
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed.kcal !== undefined) kcal = parseFloat(parsed.kcal) || 0;
+          if (parsed.steps !== undefined) steps = parseInt(parsed.steps) || 0;
+        } catch (e) {
+          // Если не JSON, ищем числа или строки вроде "kcal: 450", "steps: 8000" или просто два числа
+          const matches = text.match(/\d+/g);
+          if (matches && matches.length >= 2) {
+            kcal = parseFloat(matches[0]);
+            steps = parseInt(matches[1]);
+          } else if (matches && matches.length === 1) {
+            kcal = parseFloat(matches[0]);
+          }
+        }
+
+        if (kcal > 0 || steps > 0) {
+          const calsActiveInput = document.getElementById('input-calories-active');
+          const stepsInput = document.getElementById('input-steps');
+          if (calsActiveInput && kcal > 0) calsActiveInput.value = Math.round(kcal);
+          if (stepsInput && steps > 0) stepsInput.value = steps;
+          calculateEnergyBalance();
+          if (tg?.showAlert) tg.showAlert(`Успешно импортировано:\nАктивные ккал: ${Math.round(kcal)}\nШаги: ${steps}`);
+          else alert(`Успешно импортировано:\nАктивные ккал: ${Math.round(kcal)}\nШаги: ${steps}`);
+        } else {
+          alert('Не удалось распознать данные в буфере обмена. Убедитесь, что Быстрая команда копирует JSON или данные в формате {"kcal": 450, "steps": 8000}.');
+        }
+      } catch (err) {
+        console.error('Ошибка чтения буфера:', err);
+        const manualInput = prompt('Не удалось прочитать буфер автоматически (нужен доступ браузера). Введите активные калории и шаги через пробел (напр: 450 8500):');
+        if (manualInput) {
+          const parts = manualInput.trim().split(/\s+/);
+          if (parts.length >= 1) {
+            document.getElementById('input-calories-active').value = parts[0];
+            if (parts.length >= 2) document.getElementById('input-steps').value = parts[1];
+            calculateEnergyBalance();
+          }
+        }
+      }
+    }
+
+    function loadTodayHealthData() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const saved = localStorage.getItem(`gym_health_${todayStr}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (document.getElementById('input-calories-in')) document.getElementById('input-calories-in').value = data.calsIn || '';
+          if (document.getElementById('input-calories-active')) document.getElementById('input-calories-active').value = data.calsActive || '';
+          if (document.getElementById('input-steps')) document.getElementById('input-steps').value = data.steps || '';
+          calculateEnergyBalance();
+        } catch(e) {}
+      }
+    }
+
     // Инициализация
     checkAuth();
     loadData();
     renderExerciseSelects();
     renderTodaySets();
+    loadTodayHealthData();
     const verDisplay = document.getElementById('app-version-display');
     if (verDisplay) verDisplay.textContent = `Версия приложения: ${APP_VERSION}`;
   </script>
