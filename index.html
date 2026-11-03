@@ -359,7 +359,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.17</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.20</div>
     </div>
   </div>
 
@@ -488,81 +488,171 @@
     </section>
 
     <!-- Вкладка 5: Антропометрия -->
+        <!-- Вкладка 5: Дневник КБЖУ, Баланс и Замеры -->
+        <!-- Вкладка 5: Дневник КБЖУ, Недельный баланс и Замеры -->
     <section id="tab-body" class="tab-content">
-      <div class="card card-scrollable">
-        <h2>⚖️ Антропометрия и Баланс КБЖУ</h2>
-        <div class="row" style="margin-bottom:4px;">
-          <div>
-            <label>Вес тела (кг)</label>
-            <input type="number" id="input-body-weight" placeholder="71.7" step="0.1">
-          </div>
-          <div>
-            <label>Талия (см)</label>
-            <input type="number" id="input-body-waist" placeholder="0" step="0.5">
-          </div>
+      <!-- Переключатель подвкладок -->
+      <div class="card" style="padding: 6px;">
+        <div class="row">
+          <button id="subtab-btn-calc" class="btn-primary" onclick="switchBodySubTab('calc')" style="font-size:0.75rem; padding:8px;">🍏 КБЖУ и Недельный баланс</button>
+          <button id="subtab-btn-measures" class="btn-step" onclick="switchBodySubTab('measures')" style="font-size:0.75rem; padding:8px;">📏 Замеры тела</button>
         </div>
-        <div class="row" style="margin-bottom:4px;">
-          <div>
-            <label>Грудь (см)</label>
-            <input type="number" id="input-body-chest" placeholder="0" step="0.5">
-          </div>
-          <div>
-            <label>Бедра (см)</label>
-            <input type="number" id="input-body-hips" placeholder="0" step="0.5">
-          </div>
-        </div>
-        <div class="row" style="margin-bottom:6px;">
-          <div>
-            <label>Бицепс (см)</label>
-            <input type="number" id="input-body-bicep" placeholder="0" step="0.5">
-          </div>
-          <div>
-            <label>Ягодицы (см)</label>
-            <input type="number" id="input-body-glutes" placeholder="0" step="0.5">
-          </div>
-        </div>
-        <button class="btn-primary" onclick="addBodyRecord()" style="margin-bottom: 8px;">Записать параметры</button>
-
-        <hr style="border:0; border-top:1px solid var(--border-color); margin: 8px 0;">
-
-        <h2 style="font-size: 0.8rem; color: var(--accent);">🍏 Энергетический баланс за сегодня</h2>
-        <div class="row" style="margin-bottom:4px;">
-          <div>
-            <label>Съедено (ккал)</label>
-            <input type="number" id="input-calories-in" placeholder="2500" oninput="calculateEnergyBalance()">
-          </div>
-          <div>
-            <label>Активные ккал (Watch)</label>
-            <input type="number" id="input-calories-active" placeholder="0" oninput="calculateEnergyBalance()">
-          </div>
-        </div>
-        <div class="row" style="margin-bottom:4px;">
-          <div>
-            <label>Шаги</label>
-            <input type="number" id="input-steps" placeholder="0" oninput="calculateEnergyBalance()">
-          </div>
-          <div>
-            <label>Баланс (Дефицит/Профицит)</label>
-            <div id="energy-balance-display" style="padding: 8px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.85rem; font-weight: bold; text-align: center; color: var(--accent-green);">0 ккал</div>
-          </div>
-        </div>
-        <button class="btn-primary" onclick="importFromAppleHealthClipboard()" style="background: var(--accent-green); margin-top: 4px; font-size: 0.75rem;">📥 Импорт активных ккал и шагов из Apple Health</button>
       </div>
 
-      <div class="card" style="max-height: 160px; display: flex; flex-direction: column;">
-        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 4px;">
-          <h2 style="font-size: 0.75rem; margin-bottom: 0;">Динамика замеров</h2>
-          <select id="body-metric-select" onchange="updateBodyChart()" style="width: auto; padding: 2px 6px; font-size: 0.75rem; margin-bottom: 0;">
-            <option value="weight">⚖️ Вес тела (кг)</option>
-            <option value="waist">📏 Талия (см)</option>
-            <option value="chest">📐 Грудь (см)</option>
-            <option value="hips">🦵 Бедра (см)</option>
-            <option value="bicep">💪 Бицепс (см)</option>
-            <option value="glutes">🍑 Ягодицы (см)</option>
+      <!-- Подвкладка 1: КБЖУ и Недельный баланс -->
+      <div id="body-subtab-calc" class="card card-scrollable" style="display: flex; flex-direction: column; gap: 8px;">
+        
+        <!-- Блок профиля для расчета TDEE (размещен открыто на главной) -->
+        <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
+          <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">⚙️ Параметры для расчета расхода ккал</h2>
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Пол</label>
+              <select id="user-gender" onchange="recalculateTDEE()">
+                <option value="male" selected>Мужской</option>
+                <option value="female">Женский</option>
+              </select>
+            </div>
+            <div>
+              <label>Возраст (лет)</label>
+              <input type="number" id="user-age" value="31" placeholder="31" oninput="recalculateTDEE()">
+            </div>
+          </div>
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Рост (см)</label>
+              <input type="number" id="user-height" value="179" placeholder="179" oninput="recalculateTDEE()">
+            </div>
+            <div>
+              <label>Текущий вес (кг)</label>
+              <input type="number" id="user-weight" value="71.7" placeholder="71.7" step="0.1" oninput="recalculateTDEE()">
+            </div>
+          </div>
+          <label>Силовые тренировки / Активность</label>
+          <select id="user-activity" onchange="recalculateTDEE()">
+            <option value="1.2">Минимальная (сидячая)</option>
+            <option value="1.375">1-3 тренировки в неделю</option>
+            <option value="1.55" selected>3-5 тренировок в неделю</option>
+            <option value="1.725">6-7 интенсивных тренировок</option>
           </select>
+          <div id="tdee-info-box" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-color); padding: 6px; border-radius: 6px; margin-top: 4px;">
+            BMR: <strong id="bmr-val" style="color:var(--text-main);">1686</strong> ккал | База (TDEE): <strong id="tdee-val" style="color:var(--accent);">2613</strong> ккал/день
+          </div>
         </div>
-        <div style="flex: 1; min-height: 90px;">
-          <canvas id="bodyChart" style="width: 100%; height: 100%;"></canvas>
+
+        <!-- Блок дневного КБЖУ -->
+        <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
+          <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">📊 Дневник за сегодня</h2>
+          
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Съедено (ккал)</label>
+              <input type="number" id="input-kcal-in" placeholder="2600" oninput="calculateKBDZBalance()">
+            </div>
+            <div>
+              <label>Шаги за день</label>
+              <input type="number" id="input-daily-steps" placeholder="8000" oninput="calculateKBDZBalance()">
+            </div>
+          </div>
+
+          <label>Макронутриенты (Б / Ж / У в граммах)</label>
+          <div class="row" style="margin-bottom:6px;">
+            <div>
+              <input type="number" id="input-protein" placeholder="Белки (г)" oninput="calculateKBDZBalance()">
+            </div>
+            <div>
+              <input type="number" id="input-fats" placeholder="Жиры (г)" oninput="calculateKBDZBalance()">
+            </div>
+            <div>
+              <input type="number" id="input-carbs" placeholder="Угл (г)" oninput="calculateKBDZBalance()">
+            </div>
+          </div>
+
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Доп. активные ккал (кардио/тренажеры)</label>
+              <input type="number" id="input-extra-active-kcal" placeholder="0" oninput="calculateKBDZBalance()">
+            </div>
+          </div>
+
+          <button class="btn-primary" onclick="saveKBDZForToday()" style="margin-top: 4px; font-size: 0.8rem;">Сохранить день в историю</button>
+        </div>
+
+        <!-- Итоговый экран баланса дня -->
+        <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
+          <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Баланс за сегодня</div>
+          <div id="kbdz-balance-result" style="font-size: 1.1rem; font-weight: 800; color: var(--accent-green); margin: 4px 0;">0 ккал</div>
+          <div id="kbdz-macros-summary" style="font-size: 0.75rem; color: var(--text-muted);">Б: 0г • Ж: 0г • У: 0г</div>
+        </div>
+
+        <!-- Блок Недельного дефицита/профицита -->
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
+          <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:4px;">📅 Итог за последние 7 дней</h2>
+          <div id="weekly-deficit-display" style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green); margin: 4px 0;">0 ккал</div>
+          <div id="weekly-weight-trend-info" style="font-size: 0.75rem; color: var(--text-muted);">Прогноз динамики веса: ~0.0 кг / неделю</div>
+        </div>
+
+      </div>
+
+      <!-- Подвкладка 2: Замеры тела -->
+      <div id="body-subtab-measures" class="card card-scrollable" style="display: none; flex-direction: column; gap: 8px;">
+        <div>
+          <h2>📏 Замеры объемов тела</h2>
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Вес тела (кг)</label>
+              <input type="number" id="input-body-weight" placeholder="71.7" step="0.1">
+            </div>
+            <div>
+              <label>Талия (см)</label>
+              <input type="number" id="input-body-waist" placeholder="0" step="0.5">
+            </div>
+          </div>
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Грудь (см)</label>
+              <input type="number" id="input-body-chest" placeholder="0" step="0.5">
+            </div>
+            <div>
+              <label>Бедра (см)</label>
+              <input type="number" id="input-body-hips" placeholder="0" step="0.5">
+            </div>
+          </div>
+          <div class="row" style="margin-bottom:6px;">
+            <div>
+              <label>Бицепс (см)</label>
+              <input type="number" id="input-body-bicep" placeholder="0" step="0.5">
+            </div>
+            <div>
+              <label>Ягодицы (см)</label>
+              <input type="number" id="input-body-glutes" placeholder="0" step="0.5">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="addBodyRecord()" style="margin-bottom: 8px;">Записать параметры</button>
+        </div>
+
+        <div style="max-height: 160px; display: flex; flex-direction: column; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px;">
+          <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 4px;">
+            <h2 style="font-size: 0.75rem; margin-bottom: 0;">Динамика замеров</h2>
+            <select id="body-metric-select" onchange="updateBodyChart()" style="width: auto; padding: 2px 6px; font-size: 0.75rem; margin-bottom: 0;">
+              <option value="weight">⚖️ Вес тела (кг)</option>
+              <option value="waist">📏 Талия (см)</option>
+              <option value="chest">📐 Грудь (см)</option>
+              <option value="hips">🦵 Бедра (см)</option>
+              <option value="bicep">💪 Бицепс (см)</option>
+              <option value="glutes">🍑 Ягодицы (см)</option>
+            </select>
+          </div>
+          <div style="flex: 1; min-height: 90px;">
+            <canvas id="bodyChart" style="width: 100%; height: 100%;"></canvas>
+          </div>
+        </div>
+
+        <div>
+          <h2>История замеров</h2>
+          <div id="body-logs-list">
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Записей пока нет</p>
+          </div>
         </div>
       </div>
     </section>
@@ -592,7 +682,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.17";
+    const APP_VERSION = "v1.0.20";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
@@ -863,8 +953,7 @@
         renderTemplateCheckboxes();
         renderTemplatesList();
       } else if (tabName === 'body') {
-        renderBodyLogs();
-        updateBodyChart();
+        switchBodySubTab('calc');
       }
     }
 
@@ -1464,6 +1553,8 @@
 
       bodyLogs.push(newRecord);
       bodyLogs.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
+      syncLatestWeightToCalc();
+      recalculateTDEE();
       saveData();
       renderBodyLogs();
       updateBodyChart();
@@ -1728,118 +1819,231 @@
       }
     }
 
-    // Энергетический баланс и Apple Health
-    const BMR_DEFAULT = 1686; // Базовый метаболизм (Миттеран-Сан Жеор для 71.7 кг, 179 см, 31 год)
+    
+    
+    // Переключение подвкладок в "Замеры"
+    function switchBodySubTab(sub) {
+      triggerHaptic();
+      const btnCalc = document.getElementById('subtab-btn-calc');
+      const btnMeasures = document.getElementById('subtab-btn-measures');
+      const tabCalc = document.getElementById('body-subtab-calc');
+      const tabMeasures = document.getElementById('body-subtab-measures');
 
-    function calculateEnergyBalance() {
-      const calsInInput = document.getElementById('input-calories-in');
-      const calsActiveInput = document.getElementById('input-calories-active');
-      const balanceDisplay = document.getElementById('energy-balance-display');
-      if (!calsInInput || !calsActiveInput || !balanceDisplay) return;
+      if (!btnCalc || !btnMeasures || !tabCalc || !tabMeasures) return;
 
-      const calsIn = parseFloat(calsInInput.value) || 0;
-      const calsActive = parseFloat(calsActiveInput.value) || 0;
-      const totalBurned = BMR_DEFAULT + calsActive;
-      const balance = calsIn - totalBurned;
+      if (sub === 'calc') {
+        btnCalc.className = 'btn-primary';
+        btnMeasures.className = 'btn-step';
+        tabCalc.style.display = 'flex';
+        tabMeasures.style.display = 'none';
+        syncLatestWeightToCalc();
+        recalculateTDEE();
+        loadTodayKBDZData();
+        calculateWeeklyBalance();
+      } else {
+        btnCalc.className = 'btn-step';
+        btnMeasures.className = 'btn-primary';
+        tabCalc.style.display = 'none';
+        tabMeasures.style.display = 'flex';
+        renderBodyLogs();
+        updateBodyChart();
+      }
+    }
 
-      if (calsIn === 0 && calsActive === 0) {
-        balanceDisplay.textContent = '0 ккал';
-        balanceDisplay.style.color = 'var(--text-muted)';
+    // Синхронизация с последним взвешиванием из истории замеров
+    function syncLatestWeightToCalc() {
+      if (bodyLogs && bodyLogs.length > 0) {
+        const latestWeightLog = [...bodyLogs].reverse().find(r => r.weight && r.weight > 0);
+        if (latestWeightLog && document.getElementById('user-weight')) {
+          document.getElementById('user-weight').value = latestWeightLog.weight;
+        }
+      }
+    }
+
+    // Расчет BMR и TDEE по Миффлину-Сан Жеору
+    function calculateBMRAndTDEE() {
+      const gender = document.getElementById('user-gender')?.value || 'male';
+      const age = parseFloat(document.getElementById('user-age')?.value) || 31;
+      const height = parseFloat(document.getElementById('user-height')?.value) || 179;
+      const weight = parseFloat(document.getElementById('user-weight')?.value) || 71.7;
+      const activity = parseFloat(document.getElementById('user-activity')?.value) || 1.55;
+
+      // Формула Миффлина-Сан Жеора
+      let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+      if (gender === 'male') {
+        bmr += 5;
+      } else {
+        bmr -= 161;
+      }
+
+      // Добавим расход от шагов: ~0.04 ккал за шаг
+      const steps = parseFloat(document.getElementById('input-daily-steps')?.value) || 0;
+      const stepCalories = steps * 0.04;
+
+      const tdee = (bmr * activity) + stepCalories;
+      return { bmr: Math.round(bmr), tdee: Math.round(tdee) };
+    }
+
+    function recalculateTDEE() {
+      const res = calculateBMRAndTDEE();
+      const bmrEl = document.getElementById('bmr-val');
+      const tdeeEl = document.getElementById('tdee-val');
+      if (bmrEl) bmrEl.textContent = res.bmr;
+      if (tdeeEl) tdeeEl.textContent = res.tdee;
+      calculateKBDZBalance();
+      calculateWeeklyBalance();
+    }
+
+    function calculateKBDZBalance() {
+      const { tdee } = calculateBMRAndTDEE();
+      const kcalIn = parseFloat(document.getElementById('input-kcal-in')?.value) || 0;
+      const protein = parseFloat(document.getElementById('input-protein')?.value) || 0;
+      const fats = parseFloat(document.getElementById('input-fats')?.value) || 0;
+      const carbs = parseFloat(document.getElementById('input-carbs')?.value) || 0;
+      const extraActive = parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0;
+
+      const totalBurned = tdee + extraActive;
+      const balance = kcalIn - totalBurned;
+
+      const resEl = document.getElementById('kbdz-balance-result');
+      const macrosEl = document.getElementById('kbdz-macros-summary');
+
+      if (resEl) {
+        if (kcalIn === 0) {
+          resEl.textContent = `Норма поддержания: ${tdee} ккал/день`;
+          resEl.style.color = 'var(--text-muted)';
+        } else if (balance > 0) {
+          resEl.textContent = `+${Math.round(balance)} ккал (Профицит за день)`;
+          resEl.style.color = '#38bdf8';
+        } else {
+          resEl.textContent = `${Math.round(balance)} ккал (Дефицит за день)`;
+          resEl.style.color = '#22c55e';
+        }
+      }
+
+      if (macrosEl) {
+        const pKcal = protein * 4;
+        const fKcal = fats * 9;
+        const cKcal = carbs * 4;
+        macrosEl.textContent = `Белки: ${protein}г (${pKcal}ккал) • Жиры: ${fats}г (${fKcal}ккал) • Угл: ${carbs}г (${cKcal}ккал)`;
+      }
+    }
+
+    // Расчет суммарного дефицита/профицита за последние 7 дней
+    function calculateWeeklyBalance() {
+      const { tdee } = calculateBMRAndTDEE();
+      const weeklyDisplay = document.getElementById('weekly-deficit-display');
+      const trendDisplay = document.getElementById('weekly-weight-trend-info');
+      if (!weeklyDisplay) return;
+
+      let totalWeeklyBalance = 0;
+      let daysCount = 0;
+
+      const now = new Date();
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const saved = localStorage.getItem(`gym_kbdz_${dateStr}`);
+
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            const inKcal = data.kcalIn || 0;
+            if (inKcal > 0) {
+              const extraAct = data.extraActive || 0;
+              const stepKcal = (data.steps || 0) * 0.04;
+              const dayBurned = tdee + extraAct + stepKcal;
+              totalWeeklyBalance += (inKcal - dayBurned);
+              daysCount++;
+            }
+          } catch(e) {}
+        }
+      }
+
+      // Учтем текущий день в реальном времени
+      const currentIn = parseFloat(document.getElementById('input-kcal-in')?.value) || 0;
+      if (currentIn > 0 && !localStorage.getItem(`gym_kbdz_${now.toISOString().split('T')[0]}`)) {
+        const extraAct = parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0;
+        const dayBurned = tdee + extraAct;
+        totalWeeklyBalance += (currentIn - dayBurned);
+        daysCount++;
+      }
+
+      if (daysCount === 0) {
+        weeklyDisplay.textContent = "0 ккал (Нет данных за 7 дней)";
+        weeklyDisplay.style.color = "var(--text-muted)";
+        if (trendDisplay) trendDisplay.textContent = "Заполняйте дневник ежедневно для точности";
         return;
       }
 
-      if (balance > 0) {
-        balanceDisplay.textContent = `+${Math.round(balance)} ккал (Профицит)`;
-        balanceDisplay.style.color = '#38bdf8';
+      const netBalance = Math.round(totalWeeklyBalance);
+      // 1 кг жировой массы = ~7700 ккал
+      const weightChangeKg = (netBalance / 7700).toFixed(2);
+
+      if (netBalance > 0) {
+        weeklyDisplay.textContent = `+${netBalance} ккал (Недельный профицит)`;
+        weeklyDisplay.style.color = "#38bdf8";
+        if (trendDisplay) trendDisplay.textContent = `Прогноз динамики: +${weightChangeKg} кг жира/мышц за неделю`;
       } else {
-        balanceDisplay.textContent = `${Math.round(balance)} ккал (Дефицит)`;
-        balanceDisplay.style.color = '#22c55e';
+        weeklyDisplay.textContent = `${netBalance} ккал (Недельный дефицит)`;
+        weeklyDisplay.style.color = "#22c55e";
+        if (trendDisplay) trendDisplay.textContent = `Прогноз динамики: ${weightChangeKg} кг массы за неделю`;
       }
-
-      // Сохраним в localStorage за сегодня
-      const todayStr = new Date().toISOString().split('T')[0];
-      const healthData = {
-        calsIn,
-        calsActive,
-        steps: parseInt(document.getElementById('input-steps')?.value || 0),
-        balance: Math.round(balance)
-      };
-      localStorage.setItem(`gym_health_${todayStr}`, JSON.stringify(healthData));
     }
 
-    async function importFromAppleHealthClipboard() {
+    function saveKBDZForToday() {
       triggerHaptic();
-      try {
-        const text = await navigator.clipboard.readText();
-        if (!text) {
-          alert('Буфер обмена пуст. Сначала запустите Быструю команду на iPhone.');
-          return;
-        }
+      const todayStr = new Date().toISOString().split('T')[0];
+      const data = {
+        kcalIn: parseFloat(document.getElementById('input-kcal-in')?.value) || 0,
+        protein: parseFloat(document.getElementById('input-protein')?.value) || 0,
+        fats: parseFloat(document.getElementById('input-fats')?.value) || 0,
+        carbs: parseFloat(document.getElementById('input-carbs')?.value) || 0,
+        steps: parseInt(document.getElementById('input-daily-steps')?.value) || 0,
+        extraActive: parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0,
+        gender: document.getElementById('user-gender')?.value,
+        age: document.getElementById('user-age')?.value,
+        height: document.getElementById('user-height')?.value,
+        weight: document.getElementById('user-weight')?.value,
+        activity: document.getElementById('user-activity')?.value
+      };
 
-        // Попробуем распарсить JSON или пары key:val / числа
-        let kcal = 0;
-        let steps = 0;
-
-        try {
-          const parsed = JSON.parse(text);
-          if (parsed.kcal !== undefined) kcal = parseFloat(parsed.kcal) || 0;
-          if (parsed.steps !== undefined) steps = parseInt(parsed.steps) || 0;
-        } catch (e) {
-          // Если не JSON, ищем числа или строки вроде "kcal: 450", "steps: 8000" или просто два числа
-          const matches = text.match(/\d+/g);
-          if (matches && matches.length >= 2) {
-            kcal = parseFloat(matches[0]);
-            steps = parseInt(matches[1]);
-          } else if (matches && matches.length === 1) {
-            kcal = parseFloat(matches[0]);
-          }
-        }
-
-        if (kcal > 0 || steps > 0) {
-          const calsActiveInput = document.getElementById('input-calories-active');
-          const stepsInput = document.getElementById('input-steps');
-          if (calsActiveInput && kcal > 0) calsActiveInput.value = Math.round(kcal);
-          if (stepsInput && steps > 0) stepsInput.value = steps;
-          calculateEnergyBalance();
-          if (tg?.showAlert) tg.showAlert(`Успешно импортировано:\nАктивные ккал: ${Math.round(kcal)}\nШаги: ${steps}`);
-          else alert(`Успешно импортировано:\nАктивные ккал: ${Math.round(kcal)}\nШаги: ${steps}`);
-        } else {
-          alert('Не удалось распознать данные в буфере обмена. Убедитесь, что Быстрая команда копирует JSON или данные в формате {"kcal": 450, "steps": 8000}.');
-        }
-      } catch (err) {
-        console.error('Ошибка чтения буфера:', err);
-        const manualInput = prompt('Не удалось прочитать буфер автоматически (нужен доступ браузера). Введите активные калории и шаги через пробел (напр: 450 8500):');
-        if (manualInput) {
-          const parts = manualInput.trim().split(/\s+/);
-          if (parts.length >= 1) {
-            document.getElementById('input-calories-active').value = parts[0];
-            if (parts.length >= 2) document.getElementById('input-steps').value = parts[1];
-            calculateEnergyBalance();
-          }
-        }
-      }
+      localStorage.setItem(`gym_kbdz_${todayStr}`, JSON.stringify(data));
+      calculateWeeklyBalance();
+      if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен за сегодня!');
+      else alert('Дневник КБЖУ сохранен за сегодня!');
     }
 
-    function loadTodayHealthData() {
+    function loadTodayKBDZData() {
       const todayStr = new Date().toISOString().split('T')[0];
-      const saved = localStorage.getItem(`gym_health_${todayStr}`);
+      const saved = localStorage.getItem(`gym_kbdz_${todayStr}`);
       if (saved) {
         try {
-          const data = JSON.parse(saved);
-          if (document.getElementById('input-calories-in')) document.getElementById('input-calories-in').value = data.calsIn || '';
-          if (document.getElementById('input-calories-active')) document.getElementById('input-calories-active').value = data.calsActive || '';
-          if (document.getElementById('input-steps')) document.getElementById('input-steps').value = data.steps || '';
-          calculateEnergyBalance();
+          const d = JSON.parse(saved);
+          if (document.getElementById('input-kcal-in')) document.getElementById('input-kcal-in').value = d.kcalIn || '';
+          if (document.getElementById('input-protein')) document.getElementById('input-protein').value = d.protein || '';
+          if (document.getElementById('input-fats')) document.getElementById('input-fats').value = d.fats || '';
+          if (document.getElementById('input-carbs')) document.getElementById('input-carbs').value = d.carbs || '';
+          if (document.getElementById('input-daily-steps')) document.getElementById('input-daily-steps').value = d.steps || '';
+          if (document.getElementById('input-extra-active-kcal')) document.getElementById('input-extra-active-kcal').value = d.extraActive || '';
+          
+          if (d.gender && document.getElementById('user-gender')) document.getElementById('user-gender').value = d.gender;
+          if (d.age && document.getElementById('user-age')) document.getElementById('user-age').value = d.age;
+          if (d.height && document.getElementById('user-height')) document.getElementById('user-height').value = d.height;
+          if (d.weight && document.getElementById('user-weight')) document.getElementById('user-weight').value = d.weight;
+          if (d.activity && document.getElementById('user-activity')) document.getElementById('user-activity').value = d.activity;
         } catch(e) {}
       }
+      syncLatestWeightToCalc();
+      recalculateTDEE();
     }
 
-    // Инициализация
     checkAuth();
     loadData();
     renderExerciseSelects();
     renderTodaySets();
-    loadTodayHealthData();
+    loadTodayKBDZData();
     const verDisplay = document.getElementById('app-version-display');
     if (verDisplay) verDisplay.textContent = `Версия приложения: ${APP_VERSION}`;
   </script>
