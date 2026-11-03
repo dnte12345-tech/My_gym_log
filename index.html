@@ -359,7 +359,7 @@
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.24</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.20</div>
     </div>
   </div>
 
@@ -488,6 +488,8 @@
     </section>
 
     <!-- Вкладка 5: Антропометрия -->
+        <!-- Вкладка 5: Дневник КБЖУ, Баланс и Замеры -->
+        <!-- Вкладка 5: Дневник КБЖУ, Недельный баланс и Замеры -->
     <section id="tab-body" class="tab-content">
       <!-- Переключатель подвкладок -->
       <div class="card" style="padding: 6px;">
@@ -500,7 +502,7 @@
       <!-- Подвкладка 1: КБЖУ и Недельный баланс -->
       <div id="body-subtab-calc" class="card card-scrollable" style="display: flex; flex-direction: column; gap: 8px;">
         
-        <!-- Блок профиля для расчета TDEE -->
+        <!-- Блок профиля для расчета TDEE (размещен открыто на главной) -->
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">⚙️ Параметры для расчета расхода ккал</h2>
           <div class="row" style="margin-bottom:4px;">
@@ -680,7 +682,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.24";
+    const APP_VERSION = "v1.0.20";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
@@ -697,43 +699,6 @@
           .catch(err => console.warn('Ошибка Service Worker:', err));
       });
     }
-
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
-
-    // Хранилище Telegram Cloud Storage (с фолбеком на localStorage)
-    const cloudStorage = {
-      getItem: (key) => {
-        return new Promise((resolve) => {
-          if (tg?.CloudStorage?.getItem) {
-            tg.CloudStorage.getItem(key, (err, value) => {
-              if (err || !value) {
-                resolve(localStorage.getItem(key));
-              } else {
-                resolve(value);
-              }
-            });
-          } else {
-            resolve(localStorage.getItem(key));
-          }
-        });
-      },
-      setItem: (key, value) => {
-        return new Promise((resolve) => {
-          localStorage.setItem(key, value);
-          if (tg?.CloudStorage?.setItem) {
-            tg.CloudStorage.setItem(key, value, (err, success) => {
-              resolve(success);
-            });
-          } else {
-            resolve(true);
-          }
-        });
-      }
-    };
 
     function toggleSettingsModal() {
       triggerHaptic();
@@ -757,6 +722,12 @@
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
     }
 
     function checkAuth() {
@@ -903,12 +874,13 @@
     const PRIMARY_KEY_BODY = `gym_master_body${userId}`;
     const PRIMARY_KEY_VER = `gym_app_version${userId}`;
 
-    async function loadData() {
+    function loadData() {
       try {
-        let rawExercises = await cloudStorage.getItem(PRIMARY_KEY_EX);
-        let rawLogs = await cloudStorage.getItem(PRIMARY_KEY_LOGS);
-        let rawTemplates = await cloudStorage.getItem(PRIMARY_KEY_TPL);
-        let rawBody = await cloudStorage.getItem(PRIMARY_KEY_BODY);
+        const savedVersion = localStorage.getItem(PRIMARY_KEY_VER) || 'v1.0.8';
+        let rawExercises = localStorage.getItem(PRIMARY_KEY_EX);
+        let rawLogs = localStorage.getItem(PRIMARY_KEY_LOGS);
+        let rawTemplates = localStorage.getItem(PRIMARY_KEY_TPL);
+        let rawBody = localStorage.getItem(PRIMARY_KEY_BODY);
 
         exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
@@ -922,13 +894,13 @@
           }
         });
 
-        await saveData();
-        
-        renderExerciseSelects();
-        renderTodaySets();
-        loadTodayKBDZData();
+        if (savedVersion !== APP_VERSION) {
+          localStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
+        }
+
+        saveData();
       } catch (e) {
-        console.warn('Внимание: сбой чтения облачной БД, восстановление дефолтов.', e);
+        console.warn('Внимание: сбой чтения основной БД, восстановление дефолтов.', e);
         exercises = [...defaultExercises];
         workoutLogs = [];
         templates = [...defaultTemplates];
@@ -936,13 +908,13 @@
       }
     }
 
-    async function saveData() {
+    function saveData() {
       try {
-        await cloudStorage.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
-        await cloudStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
-        await cloudStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
-        await cloudStorage.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
-        await cloudStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
+        localStorage.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
+        localStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
+        localStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
+        localStorage.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
+        localStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
       } catch (e) {
         console.error('Ошибка записи мастер-данных:', e);
       }
@@ -1065,7 +1037,7 @@
       return current1RM > maxExisting1RM;
     }
 
-    async function addSet() {
+    function addSet() {
       const exerciseSelect = document.getElementById('exercise-select');
       if (!exerciseSelect) return;
       const exercise = exerciseSelect.value;
@@ -1093,7 +1065,7 @@
       };
 
       workoutLogs.push(newLog);
-      await saveData();
+      saveData();
       renderTodaySets();
       triggerHaptic();
     }
@@ -1140,6 +1112,7 @@
         container.appendChild(details);
       });
 
+      // Кнопка экспорта в Apple Health через Shortcut
       const exportBtn = document.createElement('button');
       exportBtn.className = 'btn-primary';
       exportBtn.style.cssText = 'margin-top: 8px; font-size: 0.75rem; background: var(--accent-green);';
@@ -1171,13 +1144,10 @@
       });
       lines.push(`📊 Общий тоннаж: ${totalTonnage} кг`);
 
-      const textToCopy = lines.join('
-');
+      const textToCopy = lines.join('\n');
 
       navigator.clipboard.writeText(textToCopy).then(() => {
-        const msg = 'Данные тренировки скопированы в буфер обмена!
-
-Создайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
+        const msg = 'Данные тренировки скопированы в буфер обмена!\n\nСоздайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
         if (tg?.showAlert) tg.showAlert(msg);
         else alert(msg);
       }).catch(err => {
@@ -1186,10 +1156,10 @@
       });
     }
 
-    async function deleteSet(id) {
+    function deleteSet(id) {
       triggerHaptic();
       workoutLogs = workoutLogs.filter(l => l.id !== id);
-      await saveData();
+      saveData();
       renderTodaySets();
     }
 
@@ -1277,6 +1247,7 @@
         container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">В этот день тренировок не было.</p>';
       }
 
+      // Блок добавления забытого подхода
       const addBlock = document.createElement('div');
       addBlock.style.marginTop = '12px';
       addBlock.style.padding = '8px';
@@ -1319,15 +1290,15 @@
       }
     }
 
-    async function deleteSetFromCalendar(id, dateStr) {
+    function deleteSetFromCalendar(id, dateStr) {
       triggerHaptic();
       workoutLogs = workoutLogs.filter(l => l.id !== id);
-      await saveData();
+      saveData();
       showDayDetails(dateStr);
       initOrUpdateCalendar();
     }
 
-    async function editSetFromCalendar(id, dateStr) {
+    function editSetFromCalendar(id, dateStr) {
       triggerHaptic();
       const set = workoutLogs.find(l => l.id === id);
       if (!set) return;
@@ -1342,12 +1313,12 @@
         set.weight = w;
         set.reps = r;
         set.isPR = isPersonalRecord(set.exercise, w, r);
-        await saveData();
+        saveData();
         showDayDetails(dateStr);
       }
     }
 
-    async function addSetToDate(dateStr) {
+    function addSetToDate(dateStr) {
       triggerHaptic();
       const exSelect = document.getElementById('cal-add-ex');
       const wInput = document.getElementById('cal-add-weight');
@@ -1376,7 +1347,7 @@
       };
 
       workoutLogs.push(newLog);
-      await saveData();
+      saveData();
       showDayDetails(dateStr);
       initOrUpdateCalendar();
     }
@@ -1396,7 +1367,7 @@
       });
     }
 
-    async function addNewTemplate() {
+    function addNewTemplate() {
       const nameInput = document.getElementById('new-template-name');
       const name = nameInput ? nameInput.value.trim() : '';
       if (!name) {
@@ -1424,7 +1395,7 @@
       };
 
       templates.push(newTpl);
-      await saveData();
+      saveData();
       renderTemplatesList();
       renderTemplateSelect();
       nameInput.value = '';
@@ -1456,9 +1427,9 @@
       });
     }
 
-    async function removeTemplate(id) {
+    function removeTemplate(id) {
       templates = templates.filter(t => t.id !== id);
-      await saveData();
+      saveData();
       renderTemplatesList();
       renderTemplateSelect();
       triggerHaptic();
@@ -1491,13 +1462,13 @@
       });
     }
 
-    async function addNewExercise() {
+    function addNewExercise() {
       const input = document.getElementById('new-exercise-name');
       if (!input) return;
       const name = input.value.trim();
       if (name && !exercises.includes(name)) {
         exercises.push(name);
-        await saveData();
+        saveData();
         renderExerciseSelects();
         renderTemplateCheckboxes();
         input.value = '';
@@ -1505,9 +1476,9 @@
       }
     }
 
-    async function removeExercise(name) {
+    function removeExercise(name) {
       exercises = exercises.filter(e => e !== name);
-      await saveData();
+      saveData();
       renderExerciseSelects();
       renderTemplateCheckboxes();
       triggerHaptic();
@@ -1523,7 +1494,7 @@
       downloadAnchor.remove();
     }
 
-    async function importData() {
+    function importData() {
       const json = prompt("Вставьте JSON-строку резервной копии:");
       if (json) {
         try {
@@ -1533,7 +1504,7 @@
             workoutLogs = parsed.workoutLogs;
             if (parsed.templates) templates = parsed.templates;
             if (parsed.bodyLogs) bodyLogs = parsed.bodyLogs;
-            await saveData();
+            saveData();
             renderExerciseSelects();
             renderTodaySets();
             if (tg?.showAlert) tg.showAlert("Данные успешно восстановлены!");
@@ -1546,7 +1517,8 @@
       }
     }
 
-    async function addBodyRecord() {
+    // Антропометрия
+    function addBodyRecord() {
       const weightInput = document.getElementById('input-body-weight');
       const waistInput = document.getElementById('input-body-waist');
       const chestInput = document.getElementById('input-body-chest');
@@ -1583,7 +1555,7 @@
       bodyLogs.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
       syncLatestWeightToCalc();
       recalculateTDEE();
-      await saveData();
+      saveData();
       renderBodyLogs();
       updateBodyChart();
       triggerHaptic();
@@ -1625,10 +1597,10 @@
       });
     }
 
-    async function deleteBodyRecord(id) {
+    function deleteBodyRecord(id) {
       triggerHaptic();
       bodyLogs = bodyLogs.filter(r => r.id !== id);
-      await saveData();
+      saveData();
       renderBodyLogs();
       updateBodyChart();
     }
@@ -1847,6 +1819,9 @@
       }
     }
 
+    
+    
+    // Переключение подвкладок в "Замеры"
     function switchBodySubTab(sub) {
       triggerHaptic();
       const btnCalc = document.getElementById('subtab-btn-calc');
@@ -1875,6 +1850,7 @@
       }
     }
 
+    // Синхронизация с последним взвешиванием из истории замеров
     function syncLatestWeightToCalc() {
       if (bodyLogs && bodyLogs.length > 0) {
         const latestWeightLog = [...bodyLogs].reverse().find(r => r.weight && r.weight > 0);
@@ -1884,6 +1860,7 @@
       }
     }
 
+    // Расчет BMR и TDEE по Миффлину-Сан Жеору
     function calculateBMRAndTDEE() {
       const gender = document.getElementById('user-gender')?.value || 'male';
       const age = parseFloat(document.getElementById('user-age')?.value) || 31;
@@ -1891,6 +1868,7 @@
       const weight = parseFloat(document.getElementById('user-weight')?.value) || 71.7;
       const activity = parseFloat(document.getElementById('user-activity')?.value) || 1.55;
 
+      // Формула Миффлина-Сан Жеора
       let bmr = (10 * weight) + (6.25 * height) - (5 * age);
       if (gender === 'male') {
         bmr += 5;
@@ -1898,6 +1876,7 @@
         bmr -= 161;
       }
 
+      // Добавим расход от шагов: ~0.04 ккал за шаг
       const steps = parseFloat(document.getElementById('input-daily-steps')?.value) || 0;
       const stepCalories = steps * 0.04;
 
@@ -1950,7 +1929,8 @@
       }
     }
 
-    async function calculateWeeklyBalance() {
+    // Расчет суммарного дефицита/профицита за последние 7 дней
+    function calculateWeeklyBalance() {
       const { tdee } = calculateBMRAndTDEE();
       const weeklyDisplay = document.getElementById('weekly-deficit-display');
       const trendDisplay = document.getElementById('weekly-weight-trend-info');
@@ -1964,7 +1944,7 @@
         const d = new Date();
         d.setDate(now.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const saved = await cloudStorage.getItem(`gym_kbdz_${dateStr}`);
+        const saved = localStorage.getItem(`gym_kbdz_${dateStr}`);
 
         if (saved) {
           try {
@@ -1981,9 +1961,9 @@
         }
       }
 
+      // Учтем текущий день в реальном времени
       const currentIn = parseFloat(document.getElementById('input-kcal-in')?.value) || 0;
-      const todaySaved = await cloudStorage.getItem(`gym_kbdz_${now.toISOString().split('T')[0]}`);
-      if (currentIn > 0 && !todaySaved) {
+      if (currentIn > 0 && !localStorage.getItem(`gym_kbdz_${now.toISOString().split('T')[0]}`)) {
         const extraAct = parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0;
         const dayBurned = tdee + extraAct;
         totalWeeklyBalance += (currentIn - dayBurned);
@@ -1998,6 +1978,7 @@
       }
 
       const netBalance = Math.round(totalWeeklyBalance);
+      // 1 кг жировой массы = ~7700 ккал
       const weightChangeKg = (netBalance / 7700).toFixed(2);
 
       if (netBalance > 0) {
@@ -2011,7 +1992,7 @@
       }
     }
 
-    async function saveKBDZForToday() {
+    function saveKBDZForToday() {
       triggerHaptic();
       const todayStr = new Date().toISOString().split('T')[0];
       const data = {
@@ -2028,15 +2009,15 @@
         activity: document.getElementById('user-activity')?.value
       };
 
-      await cloudStorage.setItem(`gym_kbdz_${todayStr}`, JSON.stringify(data));
+      localStorage.setItem(`gym_kbdz_${todayStr}`, JSON.stringify(data));
       calculateWeeklyBalance();
-      if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен в облаке Telegram!');
-      else alert('Дневник КБЖУ сохранен!');
+      if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен за сегодня!');
+      else alert('Дневник КБЖУ сохранен за сегодня!');
     }
 
-    async function loadTodayKBDZData() {
+    function loadTodayKBDZData() {
       const todayStr = new Date().toISOString().split('T')[0];
-      const saved = await cloudStorage.getItem(`gym_kbdz_${todayStr}`);
+      const saved = localStorage.getItem(`gym_kbdz_${todayStr}`);
       if (saved) {
         try {
           const d = JSON.parse(saved);
@@ -2060,6 +2041,9 @@
 
     checkAuth();
     loadData();
+    renderExerciseSelects();
+    renderTodaySets();
+    loadTodayKBDZData();
     const verDisplay = document.getElementById('app-version-display');
     if (verDisplay) verDisplay.textContent = `Версия приложения: ${APP_VERSION}`;
   </script>
