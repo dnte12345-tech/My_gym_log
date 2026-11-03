@@ -15,17 +15,85 @@
 
   <style>
     :root {
-      --bg-color: var(--tg-theme-bg-color, #0b0f19);
-      --card-bg: var(--tg-theme-secondary-bg-color, #161e2e);
-      --input-bg: var(--tg-theme-bg-color, #0b0f19);
-      --accent: var(--tg-theme-button-color, #38bdf8);
-      --accent-text: var(--tg-theme-button-text-color, #0b0f19);
+      /* Тема 1: Midnight Neon (Дефолт) */
+      --bg-color: #0b0f19;
+      --card-bg: #161e2e;
+      --input-bg: #0b0f19;
+      --accent: #38bdf8;
+      --accent-text: #0b0f19;
       --accent-green: #22c55e;
-      --text-main: var(--tg-theme-text-color, #f8fafc);
-      --text-muted: var(--tg-theme-hint-color, #64748b);
+      --text-main: #f8fafc;
+      --text-muted: #64748b;
       --danger: #ef4444;
       --border-color: rgba(100, 116, 139, 0.3);
     }
+
+    /* Цветовые темы оформления */
+    [data-theme="midnight-neon"] {
+      --bg-color: #0b0f19;
+      --card-bg: #161e2e;
+      --input-bg: #0b0f19;
+      --accent: #38bdf8;
+      --accent-text: #0b0f19;
+      --accent-green: #22c55e;
+      --text-main: #f8fafc;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    [data-theme="emerald-luxe"] {
+      --bg-color: #06140e;
+      --card-bg: #0e241b;
+      --input-bg: #06140e;
+      --accent: #10b981;
+      --accent-text: #04120a;
+      --accent-green: #34d399;
+      --text-main: #ecfdf5;
+      --text-muted: #4ade80;
+      --danger: #f43f5e;
+      --border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    [data-theme="obsidian-gold"] {
+      --bg-color: #0d0d0d;
+      --card-bg: #1a1a1a;
+      --input-bg: #0d0d0d;
+      --accent: #f59e0b;
+      --accent-text: #000000;
+      --accent-green: #10b981;
+      --text-main: #fef3c7;
+      --text-muted: #a1a1aa;
+      --danger: #ef4444;
+      --border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    [data-theme="deep-amethyst"] {
+      --bg-color: #0f0b18;
+      --card-bg: #1b132d;
+      --input-bg: #0f0b18;
+      --accent: #a855f7;
+      --accent-text: #ffffff;
+      --accent-green: #22c55e;
+      --text-main: #faf5ff;
+      --text-muted: #9333ea;
+      --danger: #f43f5e;
+      --border-color: rgba(168, 85, 247, 0.3);
+    }
+
+    [data-theme="cyberpunk-red"] {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --input-bg: #121212;
+      --accent: #f43f5e;
+      --accent-text: #ffffff;
+      --accent-green: #10b981;
+      --text-main: #fff1f2;
+      --text-muted: #9f1239;
+      --danger: #e11d48;
+      --border-color: rgba(244, 63, 94, 0.3);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Roboto, sans-serif; }
     
     html, body {
@@ -35,6 +103,7 @@
       color: var(--text-main);
       display: flex;
       flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     #auth-screen {
@@ -83,7 +152,7 @@
       left: 0;
       width: 100%;
       height: 100dvh;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.7);
       z-index: 9999;
       display: none;
       align-items: center;
@@ -98,7 +167,7 @@
       width: 100%;
       max-width: 380px;
       border: 1px solid var(--border-color);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       max-height: 85vh;
       overflow-y: auto;
     }
@@ -317,7 +386,7 @@
     }
   </style>
 </head>
-<body>
+<body data-theme="midnight-neon">
 
   <!-- Окно авторизации -->
   <div id="auth-screen">
@@ -342,6 +411,17 @@
       </div>
 
       <div style="margin-bottom: 12px;">
+        <label>🎨 Премиум тема оформления</label>
+        <select id="theme-selector" onchange="changeTheme(this.value)">
+          <option value="midnight-neon">🌌 Midnight Neon (Тёмно-синий неоновый)</option>
+          <option value="emerald-luxe">💎 Emerald Luxe (Благородный изумруд)</option>
+          <option value="obsidian-gold">👑 Obsidian Gold (Черный с золотом)</option>
+          <option value="deep-amethyst">🔮 Deep Amethyst (Королевский пурпур)</option>
+          <option value="cyberpunk-red">🔥 Cyberpunk Red (Угольный алый)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 12px;">
         <label>База тренажеров</label>
         <div style="display: flex; gap: 6px; margin-bottom: 6px;">
           <input type="text" id="new-exercise-name" placeholder="Новый тренажер" style="margin-bottom: 0;">
@@ -351,15 +431,16 @@
       </div>
 
       <div style="margin-bottom: 12px;">
-        <label>Резервное копирование</label>
-        <div class="row" style="margin-bottom: 6px;">
-          <button class="btn-primary" onclick="exportData()">Экспорт JSON</button>
-          <button class="btn-step" onclick="importData()" style="padding: 10px;">Импорт</button>
+        <label>Облачная синхронизация</label>
+        <button class="btn-primary" onclick="forceCloudReload()" style="margin-bottom: 6px; padding: 8px; font-size: 0.75rem;">🔄 Принудительно выгрузить из облака</button>
+        <div class="row">
+          <button class="btn-step" onclick="exportData()" style="padding: 8px; font-size: 0.75rem;">Экспорт JSON</button>
+          <button class="btn-step" onclick="importData()" style="padding: 8px; font-size: 0.75rem;">Импорт JSON</button>
         </div>
       </div>
 
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.24</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.26</div>
     </div>
   </div>
 
@@ -680,7 +761,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.24";
+    const APP_VERSION = "v1.0.26";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -734,6 +815,19 @@
         });
       }
     };
+
+    function changeTheme(themeName) {
+      document.body.setAttribute('data-theme', themeName);
+      cloudStorage.setItem('gym_app_theme', themeName);
+      triggerHaptic();
+    }
+
+    async function loadTheme() {
+      const savedTheme = await cloudStorage.getItem('gym_app_theme') || 'midnight-neon';
+      document.body.setAttribute('data-theme', savedTheme);
+      const sel = document.getElementById('theme-selector');
+      if (sel) sel.value = savedTheme;
+    }
 
     function toggleSettingsModal() {
       triggerHaptic();
@@ -896,10 +990,25 @@
 
     async function loadData() {
       try {
+        await new Promise((resolve) => {
+          if (tg?.CloudStorage?.getKeys) {
+            tg.CloudStorage.getKeys(() => resolve());
+          } else {
+            resolve();
+          }
+        });
+
         let rawExercises = await cloudStorage.getItem(PRIMARY_KEY_EX);
         let rawLogs = await cloudStorage.getItem(PRIMARY_KEY_LOGS);
         let rawTemplates = await cloudStorage.getItem(PRIMARY_KEY_TPL);
         let rawBody = await cloudStorage.getItem(PRIMARY_KEY_BODY);
+
+        if (!rawLogs && userId) {
+          rawExercises = rawExercises || await cloudStorage.getItem('gym_master_exercises');
+          rawLogs = await cloudStorage.getItem('gym_master_logs');
+          rawTemplates = rawTemplates || await cloudStorage.getItem('gym_master_templates');
+          rawBody = rawBody || await cloudStorage.getItem('gym_master_body');
+        }
 
         exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
         workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
@@ -914,6 +1023,7 @@
         });
 
         await saveData();
+        await loadTheme();
         
         renderExerciseSelects();
         renderTodaySets();
@@ -925,6 +1035,13 @@
         templates = [...defaultTemplates];
         bodyLogs = [];
       }
+    }
+
+    async function forceCloudReload() {
+      triggerHaptic();
+      await loadData();
+      if (tg?.showAlert) tg.showAlert("Данные успешно синхронизированы из облака Telegram!");
+      else alert("Данные успешно синхронизированы из облака Telegram!");
     }
 
     async function saveData() {
@@ -941,7 +1058,10 @@
 
     document.addEventListener('visibilitychange', () => { 
       if (document.hidden) saveData();
-      else updateLastActivity();
+      else {
+        updateLastActivity();
+        loadData();
+      }
     });
     window.addEventListener('pagehide', saveData);
     ['click', 'touchstart', 'keydown'].forEach(evt => {
