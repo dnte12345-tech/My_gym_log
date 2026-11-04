@@ -29,7 +29,6 @@
       --accent-soft: rgba(56, 189, 248, 0.10);
     }
 
-    /* Цветовые темы оформления */
     [data-theme="midnight-neon"] {
       --bg-color: #0b0f19;
       --card-bg: #161e2e;
@@ -43,7 +42,6 @@
       --border-color: rgba(56, 189, 248, 0.25);
     }
 
-    /* Чистая изумрудная тема: плотные поверхности, ясный контраст */
     [data-theme="emerald-luxe"] {
       --bg-color: #07150e;
       --card-bg: #10251a;
@@ -435,6 +433,26 @@
       font-size: 0.8rem;
     }
 
+    /* Виджет таймера отдыха v1.0.32 */
+    #rest-timer-widget {
+      background: var(--card-bg);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    #rest-timer-widget.hidden { display: none; }
+    .timer-display {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: monospace;
+    }
+
     nav { 
       background: var(--card-bg); 
       display: flex; 
@@ -533,7 +551,7 @@
 
       <div class="card" style="margin: 12px 0; padding: 12px;">
         <h3 style="color:var(--accent); margin-bottom:6px; font-size:0.9rem;">🛡️ Резервная копия</h3>
-        <p style="font-size:0.72rem; color:var(--text-muted); line-height:1.4; margin-bottom:9px;">Сохраните файл JSON в надёжное место. В копию входят тренировки, упражнения, шаблоны, замеры, дневник КБЖУ и тема оформления. Файл можно использовать для переноса данных на другое устройство.</p>
+        <p style="font-size:0.72rem; color:var(--text-muted); line-height:1.4; margin-bottom:9px;">Сохраните файл JSON в надёжное место. В копию входят тренировки, упражнения, шаблоны, замеры, дневник КБЖУ и тема оформления.</p>
         <button class="btn-success" style="margin-bottom:7px;" onclick="exportBackup()">⬇️ Создать резервную копию</button>
         <button class="btn-step" onclick="document.getElementById('backup-file-input').click()">⬆️ Восстановить из JSON</button>
         <input id="backup-file-input" type="file" accept=".json,application/json" style="display:none" onchange="importBackupFromFile(this)">
@@ -543,7 +561,7 @@
         Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.31</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.32</div>
     </div>
   </div>
 
@@ -556,6 +574,33 @@
     
     <!-- Вкладка 1: Тренировка -->
     <section id="tab-workout" class="tab-content active">
+
+      <!-- Блок управления живой сессией -->
+      <div class="card" style="padding: 8px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button id="btn-toggle-session" class="btn-primary" onclick="toggleWorkoutSession()" style="font-size: 0.78rem; padding: 6px 12px; width: auto;">
+            ▶️ Начать тренировку
+          </button>
+          <div id="session-status-text" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+            Режим: Ввод в удобном темпе
+          </div>
+        </div>
+      </div>
+
+      <!-- Виджет таймера отдыха между подходами (открывается при запуске тренировки) -->
+      <div id="rest-timer-widget" class="hidden">
+        <div>
+          <div style="font-size: 0.62rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Отдых между подходами</div>
+          <div id="timer-display" class="timer-display">01:30</div>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn-step" onclick="startRestTimer(60)">60s</button>
+          <button class="btn-step" onclick="startRestTimer(90)">90s</button>
+          <button class="btn-step" onclick="startRestTimer(120)">120s</button>
+          <button class="btn-step" onclick="stopRestTimer()" style="color: var(--danger);">✕</button>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Быстрый выбор по шаблону</h2>
         <div class="row">
@@ -698,7 +743,6 @@
 
     <!-- Вкладка 5: Антропометрия -->
     <section id="tab-body" class="tab-content">
-      <!-- Переключатель подвкладок -->
       <div class="card" style="padding: 6px;">
         <div class="row">
           <button id="subtab-btn-calc" class="btn-primary" onclick="switchBodySubTab('calc')" style="font-size:0.75rem; padding:8px;">🍏 КБЖУ и Недельный баланс</button>
@@ -706,10 +750,7 @@
         </div>
       </div>
 
-      <!-- Подвкладка 1: КБЖУ и Недельный баланс -->
       <div id="body-subtab-calc" class="card card-scrollable" style="display: flex; flex-direction: column; gap: 8px;">
-        
-        <!-- Блок профиля для расчета TDEE -->
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">⚙️ Параметры для расчета расхода ккал</h2>
           <div class="row" style="margin-bottom:4px;">
@@ -747,10 +788,8 @@
           </div>
         </div>
 
-        <!-- Блок дневного КБЖУ -->
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">📊 Дневник за сегодня</h2>
-          
           <div class="row" style="margin-bottom:4px;">
             <div>
               <label>Съедено (ккал)</label>
@@ -785,23 +824,19 @@
           <button class="btn-primary" onclick="saveKBDZForToday()" style="margin-top: 4px; font-size: 0.8rem;">Сохранить день в историю</button>
         </div>
 
-        <!-- Итоговый экран баланса дня -->
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
           <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Баланс за сегодня</div>
           <div id="kbdz-balance-result" style="font-size: 1.1rem; font-weight: 800; color: var(--accent-green); margin: 4px 0;">0 ккал</div>
           <div id="kbdz-macros-summary" style="font-size: 0.75rem; color: var(--text-muted);">Б: 0г • Ж: 0г • У: 0г</div>
         </div>
 
-        <!-- Блок Недельного дефицита/профицита -->
         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:4px;">📅 Итог за последние 7 дней</h2>
           <div id="weekly-deficit-display" style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green); margin: 4px 0;">0 ккал</div>
           <div id="weekly-weight-trend-info" style="font-size: 0.75rem; color: var(--text-muted);">Прогноз динамики веса: ~0.0 кг / неделю</div>
         </div>
-
       </div>
 
-      <!-- Подвкладка 2: Замеры тела -->
       <div id="body-subtab-measures" class="card card-scrollable" style="display: none; flex-direction: column; gap: 8px;">
         <div>
           <h2>📏 Замеры объемов тела</h2>
@@ -902,7 +937,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.31";
+    const APP_VERSION = "v1.0.32";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -911,6 +946,11 @@
     const LOCK_TIME_MS = 5 * 60 * 1000;
     const SESSION_TIMEOUT_MS = 30 * 24 * 60 * 60 * 1000;
     let lockTimerInterval = null;
+
+    // Переменные для живого таймера v1.0.32
+    let isLiveSession = false;
+    let timerInterval = null;
+    let timerSecondsLeft = 0;
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -926,7 +966,6 @@
       tg.expand();
     }
 
-    // Локальное хранилище: данные остаются на этом устройстве.
     const localStore = {
       getItem: (key) => Promise.resolve(localStorage.getItem(key)),
       setItem: (key, value) => {
@@ -1116,7 +1155,6 @@
         const legacyKey = `gym_kbdz_${dateStr}`;
         const legacy = await localStore.getItem(legacyKey);
         if (legacy) {
-          // Старую общую запись закрепляем за первым открывшим её Telegram-профилем.
           await localStore.setItem(kbdzStorageKey(dateStr), legacy);
           localStorage.removeItem(legacyKey);
           return legacy;
@@ -1163,21 +1201,16 @@
         renderTodaySets();
         loadTodayKBDZData();
       } catch (e) {
-        // Не подменяем повреждённые данные пустыми и не даём автосохранению их затереть.
         dataLoadFailed = true;
         console.error('Не удалось прочитать сохранённые данные. Автосохранение заблокировано до восстановления.', e);
         const status = document.getElementById('backup-status');
         if (status) status.textContent = '⚠️ Не удалось прочитать часть данных. Сначала восстановите резервную копию JSON.';
         if (tg?.showAlert) tg.showAlert('Обнаружена ошибка чтения данных. Они не будут перезаписаны. Восстановите резервную копию в настройках.');
-        else console.warn('Обнаружена ошибка чтения данных. Восстановите резервную копию в настройках.');
       }
     }
 
     async function saveData() {
-      if (dataLoadFailed) {
-        console.warn('Сохранение отменено: загрузка данных завершилась ошибкой.');
-        return false;
-      }
+      if (dataLoadFailed) return false;
       try {
         await localStore.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
         await localStore.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
@@ -1207,6 +1240,67 @@
       if (tg?.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
       }
+    }
+
+    function triggerSuccessHaptic() {
+      if (tg?.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+    }
+
+    function toggleWorkoutSession() {
+      triggerHaptic();
+      isLiveSession = !isLiveSession;
+      const btn = document.getElementById('btn-toggle-session');
+      const status = document.getElementById('session-status-text');
+      const widget = document.getElementById('rest-timer-widget');
+
+      if (isLiveSession) {
+        btn.textContent = '⏹️ Завершить тренировку';
+        btn.style.background = 'var(--danger)';
+        btn.style.color = '#fff';
+        status.textContent = '🔥 Тренировка в процессе!';
+        status.style.color = 'var(--accent-green)';
+        widget.classList.remove('hidden');
+      } else {
+        btn.textContent = '▶️ Начать тренировку';
+        btn.style.background = 'var(--accent)';
+        btn.style.color = 'var(--accent-text)';
+        status.textContent = 'Режим: Ввод в удобном темпе';
+        status.style.color = 'var(--text-muted)';
+        widget.classList.add('hidden');
+        stopRestTimer();
+      }
+    }
+
+    function startRestTimer(seconds) {
+      triggerHaptic();
+      clearInterval(timerInterval);
+      timerSecondsLeft = seconds;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timerSecondsLeft--;
+        updateTimerDisplay();
+
+        if (timerSecondsLeft <= 0) {
+          clearInterval(timerInterval);
+          triggerSuccessHaptic();
+          document.getElementById('timer-display').textContent = "ГОТОВО!";
+        }
+      }, 1000);
+    }
+
+    function stopRestTimer() {
+      clearInterval(timerInterval);
+      document.getElementById('timer-display').textContent = "00:00";
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSecondsLeft / 60);
+      const secs = timerSecondsLeft % 60;
+      const display = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      document.getElementById('timer-display').textContent = display;
     }
 
     function openTrophyRoom() {
@@ -1326,7 +1420,6 @@
       return current1RM > maxExisting1RM;
     }
 
-    // Пересчитываем PR в хронологическом порядке после изменения истории.
     function recalculatePersonalRecords(exerciseName = null) {
       const affected = exerciseName ? [exerciseName] : [...new Set(workoutLogs.map(log => log.exercise))];
       affected.forEach(name => {
@@ -1382,6 +1475,11 @@
       await saveData();
       renderTodaySets();
       triggerHaptic();
+
+      // Запуск живого таймера, если тренировка активна
+      if (isLiveSession) {
+        startRestTimer(90);
+      }
     }
 
     function renderTodaySets() {
@@ -1419,7 +1517,10 @@
           const oneRM = calculate1RM(set.weight, set.reps);
           row.innerHTML = `
             <span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. <span style="font-size:0.7rem; color:var(--text-muted);">(1RM: ${oneRM}кг)</span> ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
-            <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button class="btn-step" onclick="duplicateSet(${set.weight}, ${set.reps}, '${set.exercise}')" title="Быстрый повтор подхода" style="padding:2px 6px;">⧉</button>
+              <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
+            </div>
           `;
           details.appendChild(row);
         });
@@ -1432,6 +1533,32 @@
       exportBtn.innerHTML = '🍎 Экспорт в Apple Health (Shortcut)';
       exportBtn.onclick = exportTodayToAppleHealth;
       container.appendChild(exportBtn);
+    }
+
+    async function duplicateSet(weight, reps, exercise) {
+      triggerHaptic();
+      const now = new Date();
+      const todayStr = dateKey(now);
+      const isPR = isPersonalRecord(exercise, weight, reps);
+
+      const newLog = {
+        id: Date.now(),
+        dateStr: todayStr,
+        timestamp: now.toISOString(),
+        exercise,
+        weight,
+        reps,
+        isPR
+      };
+
+      workoutLogs.push(newLog);
+      recalculatePersonalRecords(exercise);
+      await saveData();
+      renderTodaySets();
+
+      if (isLiveSession) {
+        startRestTimer(90);
+      }
     }
 
     function exportTodayToAppleHealth() {
@@ -1457,10 +1584,13 @@
       });
       lines.push(`📊 Общий тоннаж: ${totalTonnage} кг`);
 
-      const textToCopy = lines.join('\n');
+      const textToCopy = lines.join('
+');
 
       navigator.clipboard.writeText(textToCopy).then(() => {
-        const msg = 'Данные тренировки скопированы в буфер обмена!\n\nСоздайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
+        const msg = 'Данные тренировки скопированы в буфер обмена!
+
+Создайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
         if (tg?.showAlert) tg.showAlert(msg);
         else alert(msg);
       }).catch(err => {
@@ -1559,7 +1689,7 @@
             row.innerHTML = `
               <span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
               <div style="display:flex; gap:4px; align-items:center;">
-                <button class="btn-step" onclick="editSetFromCalendar(${set.id}, '${dateStr}')" title="Редактировать подход" aria-label="Редактировать подход" style="padding:2px 6px;">✏️</button>
+                <button class="btn-step" onclick="editSetFromCalendar(${set.id}, '${dateStr}')" title="Редактировать подход" style="padding:2px 6px;">✏️</button>
                 <button class="btn-close" onclick="deleteSetFromCalendar(${set.id}, '${dateStr}')" title="Удалить">&times;</button>
               </div>
             `;
@@ -1659,7 +1789,6 @@
       else showDayDetails(sourceDate);
       initOrUpdateCalendar();
       if (tg?.showAlert) tg.showAlert(`Скопировано подходов: ${copies.length}`);
-      else alert(`Скопировано подходов: ${copies.length}`);
     }
 
     async function deleteSetFromCalendar(id, dateStr) {
@@ -2491,8 +2620,6 @@
       recalculateTDEE();
     }
 
-
-    // Формат резервной копии v1: только пользовательские данные, без ключей авторизации.
     const BACKUP_FORMAT = 'lift-lab-backup';
     const BACKUP_SCHEMA_VERSION = 1;
     const BACKUP_MAX_BYTES = 5 * 1024 * 1024;
@@ -2515,7 +2642,6 @@
         if (!key || !backupKeyAllowed(key)) continue;
         const isProfileKey = /_tg_\d+$/.test(key);
         if (!userId) {
-          // В браузерном режиме не экспортируем данные других Telegram-профилей.
           if (!isProfileKey) entries[key] = localStorage.getItem(key);
           continue;
         }
@@ -2523,7 +2649,6 @@
           if (key.endsWith(userId)) entries[key] = localStorage.getItem(key);
           continue;
         }
-        // Legacy-ключ включается только если для активного профиля ещё нет нового ключа.
         let activeTwin = null;
         const master = key.match(/^(gym_master_(?:exercises|logs|templates|body))$/);
         const version = key.match(/^gym_app_version$/);
