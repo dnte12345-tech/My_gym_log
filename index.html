@@ -26,6 +26,7 @@
       --text-muted: #64748b;
       --danger: #ef4444;
       --border-color: rgba(100, 116, 139, 0.3);
+      --accent-soft: rgba(56, 189, 248, 0.10);
     }
 
     /* Цветовые темы оформления */
@@ -42,17 +43,33 @@
       --border-color: rgba(56, 189, 248, 0.25);
     }
 
+    /* Чистая изумрудная тема: плотные поверхности, ясный контраст */
     [data-theme="emerald-luxe"] {
-      --bg-color: #06140e;
-      --card-bg: #0e241b;
-      --input-bg: #06140e;
-      --accent: #10b981;
-      --accent-text: #04120a;
-      --accent-green: #34d399;
-      --text-main: #ecfdf5;
-      --text-muted: #4ade80;
-      --danger: #f43f5e;
-      --border-color: rgba(16, 185, 129, 0.25);
+      --bg-color: #07150e;
+      --card-bg: #10251a;
+      --input-bg: #0a1b12;
+      --accent: #22c55e;
+      --accent-text: #052e16;
+      --accent-green: #4ade80;
+      --text-main: #f0fdf4;
+      --text-muted: #9bb8a5;
+      --danger: #fb7185;
+      --border-color: #28543a;
+      --accent-soft: rgba(34, 197, 94, 0.14);
+    }
+
+    [data-theme="white-clean"] {
+      --bg-color: #f3f6f4;
+      --card-bg: #ffffff;
+      --input-bg: #f7faf8;
+      --accent: #16834a;
+      --accent-text: #ffffff;
+      --accent-green: #159447;
+      --text-main: #17251c;
+      --text-muted: #66756b;
+      --danger: #dc3545;
+      --border-color: #d8e2db;
+      --accent-soft: rgba(22, 131, 74, 0.10);
     }
 
     [data-theme="obsidian-gold"] {
@@ -93,6 +110,13 @@
       --danger: #e11d48;
       --border-color: rgba(244, 63, 94, 0.3);
     }
+
+    [data-theme="emerald-luxe"] .card,
+    [data-theme="white-clean"] .card {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    }
+    [data-theme="emerald-luxe"] details[open] summary { background: rgba(34, 197, 94, 0.12); }
+    [data-theme="white-clean"] details[open] summary { background: rgba(22, 131, 74, 0.08); }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Roboto, sans-serif; }
     
@@ -229,7 +253,7 @@
       padding: 6px 8px;
       margin-bottom: 4px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--accent-soft, rgba(255, 255, 255, 0.03));
       border: 1px solid var(--border-color);
       cursor: pointer;
       user-select: none;
@@ -290,7 +314,7 @@
     summary::-webkit-details-marker { display: none; }
     summary::after { content: '❯'; font-size: 0.7rem; color: var(--accent); transition: transform 0.2s; }
     details[open] summary::after { transform: rotate(90deg); }
-    details[open] summary { border-bottom: 1px solid var(--border-color); background: rgba(56, 189, 248, 0.1); }
+    details[open] summary { border-bottom: 1px solid var(--border-color); background: var(--accent-soft, rgba(56, 189, 248, 0.1)); }
 
     .set-item-row { 
       display: flex; 
@@ -441,7 +465,8 @@
         <label>🎨 Премиум тема оформления</label>
         <select id="theme-selector" onchange="changeTheme(this.value)">
           <option value="midnight-neon">🌌 Midnight Neon (Тёмно-синий неоновый)</option>
-          <option value="emerald-luxe">💎 Emerald Luxe (Благородный изумруд)</option>
+          <option value="emerald-luxe">🌿 Emerald Clean (Чистый изумруд)</option>
+          <option value="white-clean">☀️ White Clean (Светлая)</option>
           <option value="obsidian-gold">👑 Obsidian Gold (Черный с золотом)</option>
           <option value="deep-amethyst">🔮 Deep Amethyst (Королевский пурпур)</option>
           <option value="cyberpunk-red">🔥 Cyberpunk Red (Угольный алый)</option>
@@ -461,7 +486,7 @@
         Данные сохраняются локально на этом устройстве.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.29</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.30</div>
     </div>
   </div>
 
@@ -591,9 +616,14 @@
         </div>
       </div>
 
-      <div class="card card-scrollable">
-        <h2>🏆 Трофейная комната (Личные рекорды)</h2>
-        <div id="trophy-room-list">
+    </section>
+
+    <!-- Отдельный экран: Трофейная комната -->
+    <section id="tab-trophies" class="tab-content">
+      <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+        <h2>🏆 Трофейная комната</h2>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Личные рекорды по каждому упражнению</p>
+        <div id="trophy-room-list" style="flex:1; min-height:0; overflow-y:auto; padding-right:2px;">
           <p style="color: var(--text-muted); font-size: 0.8rem;">Пока нет записей для рекордов</p>
         </div>
       </div>
@@ -797,6 +827,10 @@
       <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
       Прогресс
     </button>
+    <button id="nav-trophies" onclick="switchTab('trophies')">
+      <svg viewBox="0 0 24 24"><path d="M18 2H6v3H3v3c0 2.2 1.8 4 4 4h.2A6 6 0 0 0 11 15.9V19H7v3h10v-3h-4v-3.1a6 6 0 0 0 3.8-3.9h.2c2.2 0 4-1.8 4-4V5h-3V2zM7 9.9C5.9 9.7 5 8.8 5 7V7h1.2v2c0 .3.1.6.2.9H7zm12-2.9c0 1.8-.9 2.7-2 2.9.1-.3.2-.6.2-.9V7H19z"/></svg>
+      Трофеи
+    </button>
     <button id="nav-templates" onclick="switchTab('templates')">
       <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
       Шаблоны
@@ -808,7 +842,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.29";
+    const APP_VERSION = "v1.0.30";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1095,6 +1129,7 @@
       if (tabName === 'progress') {
         renderProgressSelect();
         updateChart();
+      } else if (tabName === 'trophies') {
         renderTrophyRoom();
       } else if (tabName === 'calendar') {
         initOrUpdateCalendar();
@@ -1383,16 +1418,38 @@
             row.innerHTML = `
               <span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
               <div style="display:flex; gap:4px; align-items:center;">
-                <button class="btn-step" onclick="editSetFromCalendar(${set.id}, '${dateStr}')" style="padding:2px 6px;">✏️</button>
+                <button class="btn-step" onclick="editSetFromCalendar(${set.id}, '${dateStr}')" style="padding:2px 6px;">✏️ Изменить</button>
                 <button class="btn-close" onclick="deleteSetFromCalendar(${set.id}, '${dateStr}')" title="Удалить">&times;</button>
               </div>
             `;
             details.appendChild(row);
           });
+          const noteText = sets.find(set => set.note)?.note || '';
+          const noteBlock = document.createElement('div');
+          noteBlock.style.cssText = 'margin:8px 0 4px;padding:8px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;font-size:0.78rem;';
+          const noteLabel = document.createElement('div');
+          noteLabel.style.cssText = 'color:var(--text-muted);margin-bottom:5px;';
+          noteLabel.textContent = noteText ? `Заметка: ${noteText}` : 'Заметок к упражнению пока нет';
+          const noteButton = document.createElement('button');
+          noteButton.className = 'btn-step';
+          noteButton.style.cssText = 'padding:5px 8px;font-size:0.72rem;';
+          noteButton.textContent = noteText ? 'Изменить заметку' : '+ Добавить заметку';
+          noteButton.onclick = () => editExerciseNote(dateStr, exName);
+          noteBlock.append(noteLabel, noteButton);
+          details.appendChild(noteBlock);
           container.appendChild(details);
         });
       } else {
         container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">В этот день тренировок не было.</p>';
+      }
+
+      if (logsForDay.length > 0) {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'btn-primary';
+        copyButton.style.cssText = 'width:100%;margin-top:10px;font-size:0.82rem;';
+        copyButton.textContent = '⧉ Повторить эту тренировку сегодня';
+        copyButton.onclick = () => copyWorkoutFromDate(dateStr);
+        container.appendChild(copyButton);
       }
 
       const addBlock = document.createElement('div');
@@ -1437,6 +1494,41 @@
       }
     }
 
+    async function editExerciseNote(dateStr, exercise) {
+      const matching = workoutLogs.filter(log => log.dateStr === dateStr && log.exercise === exercise);
+      if (!matching.length) return;
+      const currentNote = matching.find(log => log.note)?.note || '';
+      const note = prompt(`Заметка к упражнению «${exercise}»:`, currentNote);
+      if (note === null) return;
+      matching.forEach(log => { log.note = note.trim(); });
+      await saveData();
+      showDayDetails(dateStr);
+    }
+
+    async function copyWorkoutFromDate(sourceDate) {
+      const sourceLogs = workoutLogs.filter(log => log.dateStr === sourceDate);
+      if (!sourceLogs.length) return;
+      const todayStr = new Date().toISOString().split('T')[0];
+      const confirmMessage = `Скопировать ${sourceLogs.length} подход(ов) из тренировки ${new Date(sourceDate).toLocaleDateString('ru-RU')} на сегодня?`;
+      const approved = tg?.showConfirm ? await new Promise(resolve => tg.showConfirm(confirmMessage, resolve)) : confirm(confirmMessage);
+      if (!approved) return;
+      const now = new Date().toISOString();
+      const copies = sourceLogs.map((log, index) => ({
+        ...log,
+        id: Date.now() + index,
+        dateStr: todayStr,
+        timestamp: now,
+        isPR: isPersonalRecord(log.exercise, Number(log.weight), Number(log.reps))
+      }));
+      workoutLogs.push(...copies);
+      await saveData();
+      if (todayStr === sourceDate) showDayDetails(todayStr);
+      else showDayDetails(sourceDate);
+      initOrUpdateCalendar();
+      if (tg?.showAlert) tg.showAlert(`Скопировано подходов: ${copies.length}`);
+      else alert(`Скопировано подходов: ${copies.length}`);
+    }
+
     async function deleteSetFromCalendar(id, dateStr) {
       triggerHaptic();
       workoutLogs = workoutLogs.filter(l => l.id !== id);
@@ -1455,14 +1547,18 @@
       if (newR === null) return;
 
       const w = parseFloat(newW);
-      const r = parseInt(newR);
-      if (!isNaN(w) && !isNaN(r)) {
-        set.weight = w;
-        set.reps = r;
-        set.isPR = isPersonalRecord(set.exercise, w, r);
-        await saveData();
-        showDayDetails(dateStr);
+      const r = parseInt(newR, 10);
+      if (!Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) {
+        const message = 'Проверьте значения: вес не может быть отрицательным, повторения должны быть больше нуля.';
+        if (tg?.showAlert) tg.showAlert(message); else alert(message);
+        return;
       }
+      set.weight = w;
+      set.reps = r;
+      set.isPR = isPersonalRecord(set.exercise, w, r);
+      await saveData();
+      showDayDetails(dateStr);
+      initOrUpdateCalendar();
     }
 
     async function addSetToDate(dateStr) {
