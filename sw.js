@@ -1,53 +1,53 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.30-ui2';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
+const CACHE_NAME = 'lift-lab-cache-v1.0.31';
+const CORE_ASSETS = ['./', './index.html'];
+const OPTIONAL_ASSETS = [
   'https://telegram.org/js/telegram-web-app.js',
   'https://cdn.jsdelivr.net/npm/chart.js',
   'https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.css',
   'https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.js'
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
-  );
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(CORE_ASSETS);
+    await Promise.allSettled(OPTIONAL_ASSETS.map(url => cache.add(url)));
+    await self.skipWaiting();
+  })());
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.skipWaiting())
-  );
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name.startsWith('lift-lab-cache-') && name !== CACHE_NAME).map(name => caches.delete(name)));
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request);
+        if (response && response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put('./index.html', response.clone());
         }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        return networkResponse;
-      }).catch(() => {
-        return caches.match('./index.html');
-      });
-    })
-  );
+        return response;
+      } catch (_) {
+        return (await caches.match('./index.html')) || Response.error();
+      }
+    })());
+    return;
+  }
+  if (url.origin === self.location.origin || OPTIONAL_ASSETS.some(asset => request.url.startsWith(asset))) {
+    event.respondWith((async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      try { return await fetch(request); } catch (_) { return Response.error(); }
+    })());
+  }
 });
