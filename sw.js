@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.30-history1';
+const CACHE_NAME = 'lift-lab-cache-v1.0.30-ui2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
