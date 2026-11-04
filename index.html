@@ -378,6 +378,33 @@
     .vanilla-calendar-day__btn_selected { background-color: var(--accent) !important; color: var(--accent-text) !important; font-weight: bold; }
     .vanilla-calendar-day__btn_workout { background-color: rgba(34, 197, 94, 0.25) !important; color: #22c55e !important; border: 1px solid rgba(34, 197, 94, 0.5) !important; font-weight: bold; }
     
+    .analytics-metric {
+      min-width: 0;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .analytics-label {
+      color: var(--text-muted);
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .analytics-value {
+      color: var(--text-main);
+      font-size: 1rem;
+      font-weight: 800;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .analytics-change {
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      margin-top: 4px;
+    }
+
     .version-info {
       text-align: center;
       font-size: 0.75rem;
@@ -430,17 +457,11 @@
         <div id="exercise-list-manage" style="max-height: 120px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;"></div>
       </div>
 
-      <div style="margin-bottom: 12px;">
-        <label>Облачная синхронизация</label>
-        <button class="btn-primary" onclick="forceCloudReload()" style="margin-bottom: 6px; padding: 8px; font-size: 0.75rem;">🔄 Принудительно выгрузить из облака</button>
-        <div class="row">
-          <button class="btn-step" onclick="exportData()" style="padding: 8px; font-size: 0.75rem;">Экспорт JSON</button>
-          <button class="btn-step" onclick="importData()" style="padding: 8px; font-size: 0.75rem;">Импорт JSON</button>
-        </div>
+      <div style="font-size: 0.68rem; color: var(--text-muted); text-align: center; margin: 8px 0;">
+        Данные сохраняются локально на этом устройстве.
       </div>
-
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.26</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.29</div>
     </div>
   </div>
 
@@ -526,7 +547,33 @@
         <select id="progress-exercise-select" onchange="updateChart()"></select>
       </div>
 
-      <div class="card" style="max-height: 150px; display: flex; flex-direction: column;">
+      <div class="card" id="analytics-summary-card">
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">
+          <div class="analytics-metric">
+            <div class="analytics-label">Тренировок</div>
+            <div class="analytics-value" id="analytics-sessions">0</div>
+            <div class="analytics-change" id="analytics-sessions-change">—</div>
+          </div>
+          <div class="analytics-metric">
+            <div class="analytics-label">Подходов</div>
+            <div class="analytics-value" id="analytics-sets">0</div>
+            <div class="analytics-change" id="analytics-sets-change">—</div>
+          </div>
+          <div class="analytics-metric">
+            <div class="analytics-label">Общий тоннаж</div>
+            <div class="analytics-value" id="analytics-tonnage">0 кг</div>
+            <div class="analytics-change" id="analytics-tonnage-change">—</div>
+          </div>
+          <div class="analytics-metric">
+            <div class="analytics-label">Средний тоннаж / трен.</div>
+            <div class="analytics-value" id="analytics-average">0 кг</div>
+            <div class="analytics-change" id="analytics-average-change">—</div>
+          </div>
+        </div>
+        <div style="font-size:0.62rem; color:var(--text-muted); margin-top:7px; text-align:right;">Сравнение с предыдущим таким же периодом</div>
+      </div>
+
+      <div class="card" style="max-height: 170px; display: flex; flex-direction: column;">
         <div id="pr-card-container" style="width: 100%; margin-bottom: 4px; display: none;">
           <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; justify-content: space-around; text-align: center;">
             <div>
@@ -761,7 +808,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.26";
+    const APP_VERSION = "v1.0.29";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -785,45 +832,23 @@
       tg.expand();
     }
 
-    // Хранилище Telegram Cloud Storage (с фолбеком на localStorage)
-    const cloudStorage = {
-      getItem: (key) => {
-        return new Promise((resolve) => {
-          if (tg?.CloudStorage?.getItem) {
-            tg.CloudStorage.getItem(key, (err, value) => {
-              if (err || !value) {
-                resolve(localStorage.getItem(key));
-              } else {
-                resolve(value);
-              }
-            });
-          } else {
-            resolve(localStorage.getItem(key));
-          }
-        });
-      },
+    // Локальное хранилище: данные остаются на этом устройстве.
+    const localStore = {
+      getItem: (key) => Promise.resolve(localStorage.getItem(key)),
       setItem: (key, value) => {
-        return new Promise((resolve) => {
-          localStorage.setItem(key, value);
-          if (tg?.CloudStorage?.setItem) {
-            tg.CloudStorage.setItem(key, value, (err, success) => {
-              resolve(success);
-            });
-          } else {
-            resolve(true);
-          }
-        });
+        localStorage.setItem(key, value);
+        return Promise.resolve(true);
       }
     };
 
     function changeTheme(themeName) {
       document.body.setAttribute('data-theme', themeName);
-      cloudStorage.setItem('gym_app_theme', themeName);
+      localStore.setItem('gym_app_theme', themeName);
       triggerHaptic();
     }
 
     async function loadTheme() {
-      const savedTheme = await cloudStorage.getItem('gym_app_theme') || 'midnight-neon';
+      const savedTheme = await localStore.getItem('gym_app_theme') || 'midnight-neon';
       document.body.setAttribute('data-theme', savedTheme);
       const sel = document.getElementById('theme-selector');
       if (sel) sel.value = savedTheme;
@@ -990,24 +1015,16 @@
 
     async function loadData() {
       try {
-        await new Promise((resolve) => {
-          if (tg?.CloudStorage?.getKeys) {
-            tg.CloudStorage.getKeys(() => resolve());
-          } else {
-            resolve();
-          }
-        });
-
-        let rawExercises = await cloudStorage.getItem(PRIMARY_KEY_EX);
-        let rawLogs = await cloudStorage.getItem(PRIMARY_KEY_LOGS);
-        let rawTemplates = await cloudStorage.getItem(PRIMARY_KEY_TPL);
-        let rawBody = await cloudStorage.getItem(PRIMARY_KEY_BODY);
+        let rawExercises = await localStore.getItem(PRIMARY_KEY_EX);
+        let rawLogs = await localStore.getItem(PRIMARY_KEY_LOGS);
+        let rawTemplates = await localStore.getItem(PRIMARY_KEY_TPL);
+        let rawBody = await localStore.getItem(PRIMARY_KEY_BODY);
 
         if (!rawLogs && userId) {
-          rawExercises = rawExercises || await cloudStorage.getItem('gym_master_exercises');
-          rawLogs = await cloudStorage.getItem('gym_master_logs');
-          rawTemplates = rawTemplates || await cloudStorage.getItem('gym_master_templates');
-          rawBody = rawBody || await cloudStorage.getItem('gym_master_body');
+          rawExercises = rawExercises || await localStore.getItem('gym_master_exercises');
+          rawLogs = await localStore.getItem('gym_master_logs');
+          rawTemplates = rawTemplates || await localStore.getItem('gym_master_templates');
+          rawBody = rawBody || await localStore.getItem('gym_master_body');
         }
 
         exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
@@ -1029,7 +1046,7 @@
         renderTodaySets();
         loadTodayKBDZData();
       } catch (e) {
-        console.warn('Внимание: сбой чтения облачной БД, восстановление дефолтов.', e);
+        console.warn('Ошибка чтения локальных данных, восстановление стандартных настроек.', e);
         exercises = [...defaultExercises];
         workoutLogs = [];
         templates = [...defaultTemplates];
@@ -1037,20 +1054,13 @@
       }
     }
 
-    async function forceCloudReload() {
-      triggerHaptic();
-      await loadData();
-      if (tg?.showAlert) tg.showAlert("Данные успешно синхронизированы из облака Telegram!");
-      else alert("Данные успешно синхронизированы из облака Telegram!");
-    }
-
     async function saveData() {
       try {
-        await cloudStorage.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
-        await cloudStorage.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
-        await cloudStorage.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
-        await cloudStorage.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
-        await cloudStorage.setItem(PRIMARY_KEY_VER, APP_VERSION);
+        await localStore.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
+        await localStore.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
+        await localStore.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
+        await localStore.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
+        await localStore.setItem(PRIMARY_KEY_VER, APP_VERSION);
       } catch (e) {
         console.error('Ошибка записи мастер-данных:', e);
       }
@@ -1621,39 +1631,6 @@
       triggerHaptic();
     }
 
-    function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ exercises, workoutLogs, templates, bodyLogs }));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `lift_lab_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    async function importData() {
-      const json = prompt("Вставьте JSON-строку резервной копии:");
-      if (json) {
-        try {
-          const parsed = JSON.parse(json);
-          if (parsed.exercises && parsed.workoutLogs) {
-            exercises = parsed.exercises;
-            workoutLogs = parsed.workoutLogs;
-            if (parsed.templates) templates = parsed.templates;
-            if (parsed.bodyLogs) bodyLogs = parsed.bodyLogs;
-            await saveData();
-            renderExerciseSelects();
-            renderTodaySets();
-            if (tg?.showAlert) tg.showAlert("Данные успешно восстановлены!");
-            else alert("Данные успешно восстановлены!");
-          }
-        } catch (e) {
-          if (tg?.showAlert) tg.showAlert("Ошибка формата данных!");
-          else alert("Ошибка формата данных!");
-        }
-      }
-    }
-
     async function addBodyRecord() {
       const weightInput = document.getElementById('input-body-weight');
       const waistInput = document.getElementById('input-body-waist');
@@ -1858,16 +1835,103 @@
       updateChart();
     }
 
+    function dateFromKey(dateKey) {
+      const parts = String(dateKey || '').split('-').map(Number);
+      if (parts.length !== 3 || parts.some(Number.isNaN)) return new Date(NaN);
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function dateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getAnalyticsPeriods() {
+      const days = currentFilter === 'week' ? 7 : 30;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const currentStart = new Date(today);
+      currentStart.setDate(currentStart.getDate() - days + 1);
+      const previousStart = new Date(currentStart);
+      previousStart.setDate(previousStart.getDate() - days);
+      const nextDay = new Date(today);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return {
+        days,
+        currentStart: dateKey(currentStart),
+        currentEnd: dateKey(nextDay),
+        previousStart: dateKey(previousStart),
+        previousEnd: dateKey(currentStart)
+      };
+    }
+
+    function calculatePeriodStats(startKey, endKey) {
+      const logs = workoutLogs.filter(log => log.dateStr >= startKey && log.dateStr < endKey);
+      const sessions = new Set(logs.map(log => log.dateStr)).size;
+      const tonnage = logs.reduce((sum, log) => {
+        const weight = Number(log.weight) || 0;
+        const reps = Number(log.reps) || 0;
+        return sum + weight * reps;
+      }, 0);
+      return {
+        sessions,
+        sets: logs.length,
+        tonnage,
+        average: sessions ? tonnage / sessions : 0
+      };
+    }
+
+    function formatMetricNumber(value) {
+      return Math.round(value).toLocaleString('ru-RU');
+    }
+
+    function metricChange(current, previous) {
+      if (!previous) return current ? 'Новая активность' : 'Нет изменений';
+      const percent = Math.round(((current - previous) / previous) * 100);
+      if (percent === 0) return 'Без изменений';
+      return `${percent > 0 ? '+' : ''}${percent}% к прошлому периоду`;
+    }
+
+    function renderAnalyticsSummary() {
+      const period = getAnalyticsPeriods();
+      const current = calculatePeriodStats(period.currentStart, period.currentEnd);
+      const previous = calculatePeriodStats(period.previousStart, period.previousEnd);
+      const values = [
+        ['sessions', current.sessions, previous.sessions, value => String(value)],
+        ['sets', current.sets, previous.sets, value => String(value)],
+        ['tonnage', current.tonnage, previous.tonnage, value => `${formatMetricNumber(value)} кг`],
+        ['average', current.average, previous.average, value => `${formatMetricNumber(value)} кг`]
+      ];
+
+      values.forEach(([key, value, previousValue, formatter]) => {
+        const valueEl = document.getElementById(`analytics-${key}`);
+        const changeEl = document.getElementById(`analytics-${key}-change`);
+        if (valueEl) valueEl.textContent = formatter(value);
+        if (changeEl) {
+          changeEl.textContent = metricChange(value, previousValue);
+          changeEl.style.color = value > previousValue
+            ? 'var(--accent-green)'
+            : value < previousValue
+              ? 'var(--danger)'
+              : 'var(--text-muted)';
+        }
+      });
+    }
+
     function updateChart() {
       if (typeof Chart === 'undefined') return;
       const select = document.getElementById('progress-exercise-select');
       if (!select) return;
       const selected = select.value;
-      const now = new Date();
-      const days = currentFilter === 'week' ? 7 : 30;
-      const cutoffDate = new Date();
-      cutoffDate.setDate(now.getDate() - days);
-      
+      const period = getAnalyticsPeriods();
+      const filteredLogs = workoutLogs.filter(log =>
+        log.dateStr >= period.currentStart && log.dateStr < period.currentEnd
+      );
+
+      renderAnalyticsSummary();
+
       const prContainer = document.getElementById('pr-card-container');
       const chartCanvas = document.getElementById('progressChart');
       if (!chartCanvas) return;
@@ -1876,24 +1940,25 @@
 
       if (selected === 'TOTAL_TONNAGE') {
         if (prContainer) prContainer.style.display = 'none';
-        const filteredLogs = workoutLogs.filter(l => new Date(l.dateStr) >= cutoffDate);
-        
         const tonnageByDate = {};
-        filteredLogs.forEach(l => {
-          tonnageByDate[l.dateStr] = (tonnageByDate[l.dateStr] || 0) + (l.weight * l.reps);
+        filteredLogs.forEach(log => {
+          tonnageByDate[log.dateStr] = (tonnageByDate[log.dateStr] || 0)
+            + ((Number(log.weight) || 0) * (Number(log.reps) || 0));
         });
 
-        const sortedDates = Object.keys(tonnageByDate).sort((a, b) => new Date(a) - new Date(b));
-        const labels = sortedDates.map(d => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
-        const data = sortedDates.map(d => tonnageByDate[d]);
+        const sortedDates = Object.keys(tonnageByDate).sort();
+        const labels = sortedDates.map(key =>
+          dateFromKey(key).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+        );
+        const data = sortedDates.map(key => Math.round(tonnageByDate[key]));
 
         chartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: labels,
+            labels,
             datasets: [{
               label: 'Тоннаж (кг)',
-              data: data,
+              data,
               backgroundColor: '#22c55e',
               borderRadius: 6
             }]
@@ -1901,7 +1966,14 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: context => `Тоннаж: ${formatMetricNumber(context.parsed.y)} кг`
+                }
+              }
+            },
             scales: {
               x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
               y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' }, beginAtZero: true }
@@ -1910,42 +1982,63 @@
         });
       } else {
         if (prContainer) prContainer.style.display = 'block';
-        const filteredLogs = workoutLogs.filter(l => l.exercise === selected && new Date(l.dateStr) >= cutoffDate);
-        
-        if (filteredLogs.length > 0) {
-          const maxW = Math.max(...filteredLogs.map(l => l.weight));
-          const max1RM = Math.max(...filteredLogs.map(l => calculate1RM(l.weight, l.reps)));
-          const elWeight = document.getElementById('stat-max-weight');
-          const el1RM = document.getElementById('stat-max-1rm');
-          if (elWeight) elWeight.textContent = `${maxW} кг`;
-          if (el1RM) el1RM.textContent = `${max1RM} кг`;
-        } else {
-          const elWeight = document.getElementById('stat-max-weight');
-          const el1RM = document.getElementById('stat-max-1rm');
-          if (elWeight) elWeight.textContent = '0 кг';
-          if (el1RM) el1RM.textContent = '0 кг';
-        }
+        const exerciseLogs = filteredLogs.filter(log => log.exercise === selected);
+        const maxW = exerciseLogs.length ? Math.max(...exerciseLogs.map(log => Number(log.weight) || 0)) : 0;
+        const max1RM = exerciseLogs.length
+          ? Math.max(...exerciseLogs.map(log => calculate1RM(Number(log.weight) || 0, Number(log.reps) || 0)))
+          : 0;
+        const elWeight = document.getElementById('stat-max-weight');
+        const el1RM = document.getElementById('stat-max-1rm');
+        if (elWeight) elWeight.textContent = `${formatMetricNumber(maxW)} кг`;
+        if (el1RM) el1RM.textContent = `${formatMetricNumber(max1RM)} кг`;
 
-        const labels = filteredLogs.map(l => new Date(l.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
-        const weights = filteredLogs.map(l => l.weight);
+        const bestByDate = {};
+        exerciseLogs.forEach(log => {
+          const weight = Number(log.weight) || 0;
+          const reps = Number(log.reps) || 0;
+          const estimate = calculate1RM(weight, reps);
+          const current = bestByDate[log.dateStr];
+          if (!current || weight > current.weight || (weight === current.weight && estimate > current.oneRm)) {
+            bestByDate[log.dateStr] = { weight, reps, oneRm: estimate };
+          }
+        });
+
+        const sortedDates = Object.keys(bestByDate).sort();
+        const labels = sortedDates.map(key =>
+          dateFromKey(key).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+        );
+        const weights = sortedDates.map(key => bestByDate[key].weight);
+        const oneRms = sortedDates.map(key => bestByDate[key].oneRm);
 
         chartInstance = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: labels,
+            labels,
             datasets: [{
-              label: 'Рабочий вес (кг)',
+              label: 'Лучший рабочий вес за день (кг)',
               data: weights,
+              oneRms,
               borderColor: '#38bdf8',
               backgroundColor: 'rgba(56, 189, 248, 0.1)',
               fill: true,
-              tension: 0.3
+              tension: 0.3,
+              pointRadius: 3
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: context => {
+                    const oneRm = context.dataset.oneRms?.[context.dataIndex] || 0;
+                    return `Вес: ${context.parsed.y} кг · расчётный 1RM: ${oneRm} кг`;
+                  }
+                }
+              }
+            },
             scales: {
               x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } },
               y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: 'rgba(100, 116, 139, 0.2)' } }
@@ -2072,7 +2165,7 @@
         const d = new Date();
         d.setDate(now.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const saved = await cloudStorage.getItem(`gym_kbdz_${dateStr}`);
+        const saved = await localStore.getItem(`gym_kbdz_${dateStr}`);
 
         if (saved) {
           try {
@@ -2090,7 +2183,7 @@
       }
 
       const currentIn = parseFloat(document.getElementById('input-kcal-in')?.value) || 0;
-      const todaySaved = await cloudStorage.getItem(`gym_kbdz_${now.toISOString().split('T')[0]}`);
+      const todaySaved = await localStore.getItem(`gym_kbdz_${now.toISOString().split('T')[0]}`);
       if (currentIn > 0 && !todaySaved) {
         const extraAct = parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0;
         const dayBurned = tdee + extraAct;
@@ -2136,15 +2229,15 @@
         activity: document.getElementById('user-activity')?.value
       };
 
-      await cloudStorage.setItem(`gym_kbdz_${todayStr}`, JSON.stringify(data));
+      await localStore.setItem(`gym_kbdz_${todayStr}`, JSON.stringify(data));
       calculateWeeklyBalance();
-      if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен в облаке Telegram!');
-      else alert('Дневник КБЖУ сохранен!');
+      if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен на устройстве!');
+      else alert('Дневник КБЖУ сохранен на устройстве!');
     }
 
     async function loadTodayKBDZData() {
       const todayStr = new Date().toISOString().split('T')[0];
-      const saved = await cloudStorage.getItem(`gym_kbdz_${todayStr}`);
+      const saved = await localStore.getItem(`gym_kbdz_${todayStr}`);
       if (saved) {
         try {
           const d = JSON.parse(saved);
