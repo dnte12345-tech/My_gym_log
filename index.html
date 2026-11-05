@@ -183,53 +183,6 @@
     }
     #settings-modal.active { display: flex; }
 
-    #trophy-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-      display: none;
-      flex-direction: column;
-      background: var(--bg-color);
-      padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);
-    }
-    #trophy-modal.active { display: flex; }
-    .trophy-modal-card {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      min-height: 0;
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      padding: 14px;
-    }
-    #trophy-room-list {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-      padding-right: 2px;
-    }
-    .trophy-entry {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      text-align: left;
-      padding: 13px 15px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: var(--card-bg);
-      color: var(--text-main);
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .trophy-entry:active { transform: scale(0.99); }
     .modal-card {
       background: var(--card-bg);
       border-radius: 14px;
@@ -320,7 +273,7 @@
       cursor: pointer; 
     }
 
-    /* Селектор типа подхода (v1.0.34) */
+    /* Селектор типа подхода */
     .set-type-selector {
       display: flex;
       gap: 4px;
@@ -512,7 +465,7 @@
       margin-top: 4px;
     }
 
-    /* Индикатор нагрузки на группы мышц (v1.0.34) */
+    /* Индикатор нагрузки на группы мышц */
     .muscle-bar-item {
       margin-bottom: 6px;
     }
@@ -602,7 +555,7 @@
         Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.34</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.35</div>
     </div>
   </div>
 
@@ -710,74 +663,92 @@
       </div>
     </section>
 
-    <!-- Вкладка 3: Прогресс -->
+    <!-- Вкладка 3: Прогресс (Реорганизация v1.0.35) -->
     <section id="tab-progress" class="tab-content">
-      <div class="card">
-        <h2>Аналитика (Garmin Style)</h2>
-        <div class="row" style="margin-bottom: 8px;">
-          <button id="filter-week" class="btn-primary" onclick="setFilter('week')">Неделя</button>
-          <button id="filter-month" class="btn-step" onclick="setFilter('month')">Месяц</button>
-        </div>
-        <label for="progress-exercise-select">Упражнение / Метрика</label>
-        <select id="progress-exercise-select" onchange="updateChart()"></select>
-      </div>
-
-      <div class="card" id="analytics-summary-card">
-        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">
-          <div class="analytics-metric">
-            <div class="analytics-label">Тренировок</div>
-            <div class="analytics-value" id="analytics-sessions">0</div>
-            <div class="analytics-change" id="analytics-sessions-change">—</div>
-          </div>
-          <div class="analytics-metric">
-            <div class="analytics-label">Рабочих подходов</div>
-            <div class="analytics-value" id="analytics-sets">0</div>
-            <div class="analytics-change" id="analytics-sets-change">—</div>
-          </div>
-          <div class="analytics-metric">
-            <div class="analytics-label">Общий тоннаж</div>
-            <div class="analytics-value" id="analytics-tonnage">0 кг</div>
-            <div class="analytics-change" id="analytics-tonnage-change">—</div>
-          </div>
-          <div class="analytics-metric">
-            <div class="analytics-label">Средний тоннаж / трен.</div>
-            <div class="analytics-value" id="analytics-average">0 кг</div>
-            <div class="analytics-change" id="analytics-average-change">—</div>
-          </div>
-        </div>
-        <div style="font-size:0.62rem; color:var(--text-muted); margin-top:7px; text-align:right;">Сравнение с предыдущим таким же периодом</div>
-      </div>
-
-      <!-- Визуализация мышечных групп (v1.0.34) -->
-      <div class="card" style="padding: 10px 12px;">
-        <h2>💪 Объём по группам мышц (За неделю)</h2>
-        <div id="muscle-groups-distribution" style="margin-top: 6px;">
-          <p style="color: var(--text-muted); font-size: 0.75rem;">Загрузка данных...</p>
+      
+      <!-- Переключатель подвкладок внутри "Прогресса" -->
+      <div class="card" style="padding: 6px;">
+        <div class="row">
+          <button id="progress-subtab-btn-analytics" class="btn-primary" onclick="switchProgressSubTab('analytics')" style="font-size:0.75rem; padding:8px;">📊 Аналитика нагрузки</button>
+          <button id="progress-subtab-btn-records" class="btn-step" onclick="switchProgressSubTab('records')" style="font-size:0.75rem; padding:8px;">🏆 Личные рекорды (PR)</button>
         </div>
       </div>
 
-      <div class="card" style="max-height: 170px; display: flex; flex-direction: column;">
-        <div id="pr-card-container" style="width: 100%; margin-bottom: 4px; display: none;">
-          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; justify-around; text-align: center;">
-            <div>
-              <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
-              <div id="stat-max-weight" style="font-size: 0.85rem; font-weight: 800; color: var(--accent);">0 кг</div>
-            </div>
-            <div>
-              <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. 1RM</div>
-              <div id="stat-max-1rm" style="font-size: 0.85rem; font-weight: 800; color: var(--accent-green);">0 кг</div>
+      <!-- Подвкладка 1: Аналитика -->
+      <div id="progress-subtab-analytics" style="display: flex; flex-direction: column; gap: 8px; height: 100%; overflow: hidden;">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <h2 style="margin-bottom:0;">Аналитика (Garmin Style)</h2>
+            <div style="display:flex; gap:4px; width: 120px;">
+              <button id="filter-week" class="btn-primary" onclick="setFilter('week')" style="padding: 4px; font-size: 0.7rem;">Неделя</button>
+              <button id="filter-month" class="btn-step" onclick="setFilter('month')" style="padding: 4px; font-size: 0.7rem;">Месяц</button>
             </div>
           </div>
+          <label for="progress-exercise-select">Упражнение / Метрика</label>
+          <select id="progress-exercise-select" onchange="updateChart()"></select>
         </div>
-        <div style="flex: 1; min-height: 70px;">
-          <canvas id="progressChart" style="width: 100%; height: 100%;"></canvas>
+
+        <div class="card" id="analytics-summary-card">
+          <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">
+            <div class="analytics-metric">
+              <div class="analytics-label">Тренировок</div>
+              <div class="analytics-value" id="analytics-sessions">0</div>
+              <div class="analytics-change" id="analytics-sessions-change">—</div>
+            </div>
+            <div class="analytics-metric">
+              <div class="analytics-label">Рабочих подходов</div>
+              <div class="analytics-value" id="analytics-sets">0</div>
+              <div class="analytics-change" id="analytics-sets-change">—</div>
+            </div>
+            <div class="analytics-metric">
+              <div class="analytics-label">Общий тоннаж</div>
+              <div class="analytics-value" id="analytics-tonnage">0 кг</div>
+              <div class="analytics-change" id="analytics-tonnage-change">—</div>
+            </div>
+            <div class="analytics-metric">
+              <div class="analytics-label">Средний тоннаж / трен.</div>
+              <div class="analytics-value" id="analytics-average">0 кг</div>
+              <div class="analytics-change" id="analytics-average-change">—</div>
+            </div>
+          </div>
+          <div style="font-size:0.62rem; color:var(--text-muted); margin-top:7px; text-align:right;">Сравнение с предыдущим таким же периодом</div>
+        </div>
+
+        <!-- Визуализация мышечных групп -->
+        <div class="card" style="padding: 10px 12px;">
+          <h2>💪 Объём по группам мышц</h2>
+          <div id="muscle-groups-distribution" style="margin-top: 6px;">
+            <p style="color: var(--text-muted); font-size: 0.75rem;">Загрузка данных...</p>
+          </div>
+        </div>
+
+        <div class="card card-scrollable" style="display: flex; flex-direction: column;">
+          <div id="pr-card-container" style="width: 100%; margin-bottom: 4px; display: none;">
+            <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; justify-around; text-align: center;">
+              <div>
+                <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
+                <div id="stat-max-weight" style="font-size: 0.85rem; font-weight: 800; color: var(--accent);">0 кг</div>
+              </div>
+              <div>
+                <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. 1RM</div>
+                <div id="stat-max-1rm" style="font-size: 0.85rem; font-weight: 800; color: var(--accent-green);">0 кг</div>
+              </div>
+            </div>
+          </div>
+          <div style="flex: 1; min-height: 120px;">
+            <canvas id="progressChart" style="width: 100%; height: 100%;"></canvas>
+          </div>
         </div>
       </div>
 
-      <button class="trophy-entry" type="button" onclick="openTrophyRoom()">
-        <span>🏆 Трофейная комната</span>
-        <span aria-hidden="true" style="font-size:1.2rem; color:var(--accent);">›</span>
-      </button>
+      <!-- Подвкладка 2: Личные рекорды (Вынесено отдельно v1.0.35) -->
+      <div id="progress-subtab-records" class="card card-scrollable" style="display: none; flex-direction: column; gap: 8px;">
+        <h2>🏆 Личные рекорды по упражнениям</h2>
+        <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px;">Максимальный вес и расчётный 1RM из рабочих подходов:</p>
+        <div id="records-grid-list">
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Пока нет записей для рекордов</p>
+        </div>
+      </div>
 
     </section>
 
@@ -883,7 +854,7 @@
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
           <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Баланс за сегодня</div>
           <div id="kbdz-balance-result" style="font-size: 1.1rem; font-weight: 800; color: var(--accent-green); margin: 4px 0;">0 ккал</div>
-          <div id="kbdz-macros-summary" style="font-size: 0.75rem; color: var(--text-muted);">Б: 0г • Ж: 0г • У: 0г</div>
+          <div id="kbdz-macros-summary" style="font-size: 0.75rem; color: var(--text-muted);">Б: 0г • Жиры: 0г • Угл: 0г</div>
         </div>
 
         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
@@ -956,19 +927,6 @@
     </section>
   </div>
 
-  <section id="trophy-modal" role="dialog" aria-modal="true" aria-labelledby="trophy-modal-title">
-    <div class="trophy-modal-card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;">
-        <h2 id="trophy-modal-title">🏆 Трофейная комната</h2>
-        <button class="btn-close" type="button" onclick="closeTrophyRoom()" aria-label="Закрыть трофейную комнату" title="Закрыть" style="font-size:1.6rem; flex-shrink:0;">&times;</button>
-      </div>
-      <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Личные рекорды по каждому упражнению</p>
-      <div id="trophy-room-list">
-        <p style="color: var(--text-muted); font-size: 0.8rem;">Пока нет записей для рекордов</p>
-      </div>
-    </div>
-  </section>
-
   <nav>
     <button id="nav-workout" class="active" onclick="switchTab('workout')">
       <svg viewBox="0 0 24 24"><path d="M6 5v14h2V5H6zm10 0v14h2V5h-2zM2 9v6h2V9H2zm18 0v6h2V9h-2zM9 11v2h6v-2H9z"/></svg>
@@ -993,7 +951,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.34";
+    const APP_VERSION = "v1.0.35";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1008,7 +966,7 @@
     let timerSecondsLeft = 0;
     let currentSetType = 'WORK'; // WORK, WARMUP, DROP
 
-    // Маппинг упражнений на группы мышц (v1.0.34)
+    // Маппинг упражнений на группы мышц
     const muscleMap = {
       "Спина": ["Тяга горизонтальная на спину", "Тяга вертикальная на спину", "Подтягивания в гравитроне", "Румынская тяга", "Румынская тяга в Смите"],
       "Ноги / Ягодицы": ["Приседания в Смите", "Ягодичный мост в Смите", "Выпады с гантелями", "Сгибания ног на ягодицы", "Разгибания ног", "Сведение бедер", "Разведение бедер", "Отведение ноги назад", "Жим платформы"],
@@ -1382,21 +1340,30 @@
       document.getElementById('timer-display').textContent = display;
     }
 
-    function openTrophyRoom() {
+    function switchProgressSubTab(sub) {
       triggerHaptic();
-      renderTrophyRoom();
-      const modal = document.getElementById('trophy-modal');
-      if (modal) modal.classList.add('active');
-    }
+      const btnAnalytics = document.getElementById('progress-subtab-btn-analytics');
+      const btnRecords = document.getElementById('progress-subtab-btn-records');
+      const tabAnalytics = document.getElementById('progress-subtab-analytics');
+      const tabRecords = document.getElementById('progress-subtab-records');
 
-    function closeTrophyRoom() {
-      const modal = document.getElementById('trophy-modal');
-      if (modal) modal.classList.remove('active');
-    }
+      if (!btnAnalytics || !btnRecords || !tabAnalytics || !tabRecords) return;
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') closeTrophyRoom();
-    });
+      if (sub === 'analytics') {
+        btnAnalytics.className = 'btn-primary';
+        btnRecords.className = 'btn-step';
+        tabAnalytics.style.display = 'flex';
+        tabRecords.style.display = 'none';
+        renderProgressSelect();
+        updateChart();
+      } else {
+        btnAnalytics.className = 'btn-step';
+        btnRecords.className = 'btn-primary';
+        tabAnalytics.style.display = 'none';
+        tabRecords.style.display = 'flex';
+        renderRecordsGrid();
+      }
+    }
 
     function switchTab(tabName) {
       triggerHaptic();
@@ -1407,8 +1374,7 @@
       document.getElementById(`nav-${tabName}`).classList.add('active');
       
       if (tabName === 'progress') {
-        renderProgressSelect();
-        updateChart();
+        switchProgressSubTab('analytics');
       } else if (tabName === 'calendar') {
         initOrUpdateCalendar();
       } else if (tabName === 'templates') {
@@ -1463,7 +1429,6 @@
       const select = document.getElementById('exercise-select');
       if (!select) return;
       const selected = select.value;
-      // При расчете последнего веса смотрим только рабочие или дропсеты
       const lastLogs = workoutLogs.filter(log => log.exercise === selected && log.setType !== 'WARMUP');
       const infoBox = document.getElementById('last-workout-info');
       
@@ -1493,7 +1458,7 @@
     }
 
     function isPersonalRecord(exercise, weight, reps, setType) {
-      if (setType === 'WARMUP') return false; // Разминка не учитывается в PR
+      if (setType === 'WARMUP') return false;
       const current1RM = calculate1RM(weight, reps);
       const exerciseLogs = workoutLogs.filter(l => l.exercise === exercise && l.setType !== 'WARMUP' && Number.isFinite(Number(l.weight)) && Number.isFinite(Number(l.reps)));
       if (exerciseLogs.length === 0) return true;
@@ -2243,8 +2208,9 @@
       });
     }
 
-    function renderTrophyRoom() {
-      const container = document.getElementById('trophy-room-list');
+    // Рендер сетки личных рекордов (v1.0.35)
+    function renderRecordsGrid() {
+      const container = document.getElementById('records-grid-list');
       if (!container) return;
 
       const exercisesWithLogs = exercises.filter(ex => workoutLogs.some(l => l.exercise === ex && l.setType !== 'WARMUP'));
@@ -2264,8 +2230,8 @@
         item.className = 'trophy-item';
         item.innerHTML = `
           <div>
-            <div style="font-weight: 700; color: var(--text-main);">${ex}</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted);">Всего рабочих сетов: ${logs.length}</div>
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">${ex}</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Рабочих сетов: ${logs.length}</div>
           </div>
           <div style="text-align: right;">
             <div><span style="color: var(--text-muted); font-size: 0.65rem;">MAX:</span> <strong style="color: var(--accent);">${maxWeight} кг</strong></div>
@@ -2383,7 +2349,7 @@
       });
     }
 
-    // Рендер распределения по группам мышц за неделю (v1.0.34)
+    // Рендер распределения по группам мышц (Исправлен расчет нуля v1.0.35)
     function renderMuscleGroupsDistribution() {
       const container = document.getElementById('muscle-groups-distribution');
       if (!container) return;
@@ -2392,7 +2358,7 @@
       const weeklyLogs = workoutLogs.filter(log => log.dateStr >= period.currentStart && log.dateStr < period.currentEnd && log.setType !== 'WARMUP');
 
       if (weeklyLogs.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За последнюю неделю подходов не зафиксировано.</p>';
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За выбранный период подходов не зафиксировано (0%).</p>';
         return;
       }
 
@@ -2415,11 +2381,16 @@
           }
         }
         if (!foundGroup) {
-          muscleCounts["Спина"]++; // По умолчанию
+          muscleCounts["Спина"]++;
         }
       });
 
       const totalSets = Object.values(muscleCounts).reduce((a, b) => a + b, 0);
+
+      if (totalSets === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За выбранный период подходов не зафиксировано (0%).</p>';
+        return;
+      }
 
       container.innerHTML = '';
       Object.entries(muscleCounts).forEach(([group, count]) => {
