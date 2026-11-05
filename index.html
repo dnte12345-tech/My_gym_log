@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Lift Lab Bot</title>
+
+  <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Внешние библиотеки -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.js"></script>
+
   <style>
     :root {
       --bg-color: #0b0f19;
@@ -17,71 +25,491 @@
       --text-muted: #64748b;
       --danger: #ef4444;
       --border-color: rgba(100, 116, 139, 0.3);
+      --accent-soft: rgba(56, 189, 248, 0.10);
     }
+
+    [data-theme="midnight-neon"] {
+      --bg-color: #0b0f19;
+      --card-bg: #161e2e;
+      --input-bg: #0b0f19;
+      --accent: #38bdf8;
+      --accent-text: #0b0f19;
+      --accent-green: #22c55e;
+      --text-main: #f8fafc;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    [data-theme="emerald-luxe"] {
+      --bg-color: #07150e;
+      --card-bg: #10251a;
+      --input-bg: #0a1b12;
+      --accent: #22c55e;
+      --accent-text: #052e16;
+      --accent-green: #4ade80;
+      --text-main: #f0fdf4;
+      --text-muted: #9bb8a5;
+      --danger: #fb7185;
+      --border-color: #28543a;
+      --accent-soft: rgba(34, 197, 94, 0.14);
+    }
+
+    [data-theme="white-clean"] {
+      --bg-color: #f3f6f4;
+      --card-bg: #ffffff;
+      --input-bg: #f7faf8;
+      --accent: #16834a;
+      --accent-text: #ffffff;
+      --accent-green: #159447;
+      --text-main: #17251c;
+      --text-muted: #66756b;
+      --danger: #dc3545;
+      --border-color: #d8e2db;
+      --accent-soft: rgba(22, 131, 74, 0.10);
+    }
+
+    [data-theme="obsidian-gold"] {
+      --bg-color: #0d0d0d;
+      --card-bg: #1a1a1a;
+      --input-bg: #0d0d0d;
+      --accent: #f59e0b;
+      --accent-text: #000000;
+      --accent-green: #10b981;
+      --text-main: #fef3c7;
+      --text-muted: #a1a1aa;
+      --danger: #ef4444;
+      --border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    [data-theme="deep-amethyst"] {
+      --bg-color: #0f0b18;
+      --card-bg: #1b132d;
+      --input-bg: #0f0b18;
+      --accent: #a855f7;
+      --accent-text: #ffffff;
+      --accent-green: #22c55e;
+      --text-main: #faf5ff;
+      --text-muted: #9333ea;
+      --danger: #f43f5e;
+      --border-color: rgba(168, 85, 247, 0.3);
+    }
+
+    [data-theme="cyberpunk-red"] {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --input-bg: #121212;
+      --accent: #f43f5e;
+      --accent-text: #ffffff;
+      --accent-green: #10b981;
+      --text-main: #fff1f2;
+      --text-muted: #9f1239;
+      --danger: #e11d48;
+      --border-color: rgba(244, 63, 94, 0.3);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Roboto, sans-serif; }
-    html, body { height: 100dvh; overflow: hidden; background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; }
-    #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: var(--bg-color); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .pin-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; width: 100%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+    
+    html, body {
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Экран авторизации PIN / Регистрации */
+    #auth-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100dvh;
+      background: var(--bg-color);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .pin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      text-align: center;
+    }
     .pin-title { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; }
     .pin-subtitle { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; }
+    
     label { display: block; text-align: left; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
-    input[type="text"], input[type="password"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); font-size: 0.9rem; margin-bottom: 12px; outline: none; text-align: center; }
+    input[type="text"], input[type="password"], input[type="number"] { 
+      width: 100%; 
+      padding: 10px; 
+      border-radius: 8px; 
+      border: 1px solid var(--border-color); 
+      background: var(--input-bg); 
+      color: var(--text-main); 
+      font-size: 0.9rem; 
+      margin-bottom: 12px; 
+      outline: none; 
+    }
     input:focus { border-color: var(--accent); }
-    button.btn-primary { background: var(--accent); color: var(--accent-text); padding: 12px; border-radius: 8px; border: none; font-weight: 700; width: 100%; cursor: pointer; }
-    header { padding: 10px 16px; text-align: center; background: var(--card-bg); border-bottom: 1px solid var(--border-color); flex-shrink: 0; padding-top: calc(env(safe-area-inset-top) + 6px); display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.05rem; font-weight: 800; color: var(--accent); text-transform: uppercase; }
-    .user-badge { font-size: 0.7rem; background: var(--input-bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); color: var(--text-muted); }
-    .container { flex: 1; padding: 12px; max-width: 500px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; }
-    .card { background: var(--card-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); margin-bottom: 12px; }
-    select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); margin-bottom: 10px; outline: none; }
+
+    header { 
+      padding: 10px 16px; 
+      text-align: center; 
+      background: var(--card-bg); 
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      padding-top: calc(env(safe-area-inset-top) + 6px);
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 1.05rem; font-weight: 800; letter-spacing: 1px; color: var(--accent); text-transform: uppercase; }
+
+    .user-badge { font-size: 0.7rem; background: var(--input-bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600; }
+
+    .gear-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 4px;
+      width: auto;
+    }
+
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100dvh;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #settings-modal.active { display: flex; }
+
+    .modal-card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .container { 
+      flex: 1; 
+      padding: 10px; 
+      max-width: 500px; 
+      margin: 0 auto; 
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tab-content { 
+      display: none; 
+      height: 100%;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .tab-content.active { display: flex; }
+
+    .card { 
+      background: var(--card-bg); 
+      border-radius: 12px; 
+      padding: 10px 12px; 
+      border: 1px solid var(--border-color); 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+    .card h2 { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .card-scrollable {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    select { 
+      width: 100%; 
+      padding: 8px 10px; 
+      border-radius: 8px; 
+      border: 1px solid var(--border-color); 
+      background: var(--input-bg); 
+      color: var(--text-main); 
+      font-size: 0.9rem; 
+      margin-bottom: 8px; 
+      outline: none; 
+    }
+
+    .row { display: flex; gap: 8px; }
+    .row > div { flex: 1; }
+
+    .subtabs {
+      display: flex;
+      gap: 4px;
+      background: var(--input-bg);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 8px;
+    }
+    .subtabs button {
+      flex: 1;
+      padding: 6px 0;
+      font-size: 0.7rem;
+      border-radius: 6px;
+      background: none;
+      color: var(--text-muted);
+      border: none;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .subtabs button.active {
+      background: var(--card-bg);
+      color: var(--accent);
+      border: 1px solid var(--border-color);
+    }
+
+    button { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; }
+    .btn-primary { background: var(--accent); color: var(--accent-text); }
+    .btn-success { background: var(--accent-green); color: #fff; }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 1.1rem;
+      font-weight: bold;
+      line-height: 1;
+      padding: 2px 6px;
+      cursor: pointer;
+      width: auto;
+    }
+
+    .set-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--input-bg);
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+    }
+    .set-type-badge {
+      font-size: 0.6rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .type-warmup { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .type-work { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .type-drop { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    nav { 
+      background: var(--card-bg); 
+      display: flex; 
+      border-top: 1px solid var(--border-color); 
+      padding-bottom: calc(env(safe-area-inset-bottom) + 4px); 
+      z-index: 100; 
+      flex-shrink: 0;
+    }
+    nav button { background: none; color: var(--text-muted); border-radius: 0; padding: 8px 0 4px 0; font-size: 0.65rem; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    nav button svg { width: 18px; height: 18px; fill: currentColor; }
+    nav button.active { color: var(--accent); }
+
     #admin-panel-btn { display: none; background: #f59e0b; color: #000; margin-top: 10px; font-weight: 800; }
   </style>
 </head>
-<body>
+<body data-theme="midnight-neon">
+
+  <!-- Экран авторизации / Регистрации -->
   <div id="auth-screen">
     <div class="pin-card">
       <div class="pin-title">Lift Lab Test</div>
       <div class="pin-subtitle">Введи имя/никнейм и ПИН-код</div>
+      
       <label style="text-align: center;">Твое имя / Никнейм</label>
-      <input type="text" id="user-nickname-input" placeholder="Например: Иван (Тест)">
+      <input type="text" id="user-nickname-input" placeholder="Например: Иван (Тест)" style="text-align:center;">
+
       <label style="text-align: center;">ПИН-код</label>
-      <input type="password" id="user-pin-input" placeholder="****" maxlength="6">
-      <button class="btn-primary" onclick="handleAuth()">Войти / Зарегистрироваться</button>
+      <input type="password" id="user-pin-input" placeholder="****" maxlength="6" style="text-align:center;">
+
+      <button class="btn-primary" onclick="handleAuth()">Войти в Lift Lab</button>
       <div id="auth-error" style="color: var(--danger); font-size: 0.75rem; margin-top: 8px; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- Модальное окно настроек -->
+  <div id="settings-modal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 style="color: var(--accent);">Настройки</h2>
+        <button class="btn-close" onclick="toggleSettingsModal()">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label>🎨 Премиум тема оформления</label>
+        <select id="theme-selector" onchange="changeTheme(this.value)">
+          <option value="midnight-neon">🌌 Midnight Neon</option>
+          <option value="emerald-luxe">🌿 Emerald Clean</option>
+          <option value="white-clean">☀️ White Clean</option>
+          <option value="obsidian-gold">👑 Obsidian Gold</option>
+          <option value="deep-amethyst">🔮 Deep Amethyst</option>
+          <option value="cyberpunk-red">🔥 Cyberpunk Red</option>
+        </select>
+      </div>
+
+      <button id="admin-panel-btn" onclick="alert('Вы вошли в режим Администратора. Вся статистика доступна в вашей Google Таблице!')">👑 Статистика тестеров (God Mode)</button>
+
+      <div style="font-size: 0.68rem; color: var(--text-muted); text-align: center; margin-top: 12px;">
+        Lift Lab v1.0.40 — Полная версия
+      </div>
     </div>
   </div>
 
   <header>
     <h1>Lift Lab</h1>
     <div class="user-badge" id="current-user-badge">Аноним</div>
+    <button class="gear-btn" onclick="toggleSettingsModal()" title="Настройки">⚙️</button>
   </header>
 
   <div class="container">
-    <div class="card">
-      <h2 style="font-size:0.9rem; margin-bottom:10px;">Запись подходов</h2>
-      <label>Упражнение</label>
-      <select id="exercise-select">
-        <option value="Приседания">Приседания</option>
-        <option value="Жим лежа">Жим лежа</option>
-        <option value="Тяга блока">Тяга блока</option>
-      </select>
-      <div style="display:flex; gap:8px;">
-        <div style="flex:1;">
-          <label>Вес (кг)</label>
-          <input type="number" id="input-weight" placeholder="60" style="text-align:left;">
+    <!-- Вкладка 1: Зал (Тренировка) -->
+    <section id="tab-workout" class="tab-content active">
+      <div class="card">
+        <h2>Запись подхода</h2>
+        <label>Упражнение</label>
+        <select id="exercise-select">
+          <option value="Приседания в Смите">Приседания в Смите</option>
+          <option value="Жим груди в блоке">Жим груди в блоке</option>
+          <option value="Тяга вертикальная">Тяга вертикальная</option>
+          <option value="Подъем штанги на бицепс">Подъем штанги на бицепс</option>
+          <option value="Жим гантелей лежа">Жим гантелей лежа</option>
+        </select>
+        
+        <div class="row">
+          <div>
+            <label>Тип подхода</label>
+            <select id="set-type-select">
+              <option value="WORK">Рабочий</option>
+              <option value="WARMUP">Разминка</option>
+              <option value="DROP">Дроп-сет</option>
+            </select>
+          </div>
+          <div>
+            <label>Вес (кг)</label>
+            <input type="number" id="input-weight" placeholder="60">
+          </div>
+          <div>
+            <label>Повторы</label>
+            <input type="number" id="input-reps" placeholder="10">
+          </div>
         </div>
-        <div style="flex:1;">
-          <label>Повторы</label>
-          <input type="number" id="input-reps" placeholder="10" style="text-align:left;">
+
+        <button class="btn-primary" onclick="saveSet()">Сохранить подход</button>
+      </div>
+
+      <div class="card card-scrollable">
+        <h2>Сегодняшняя тренировка</h2>
+        <div id="today-sets-list">
+          <!-- Динамический список выполненных подходов за сегодня -->
         </div>
       </div>
-      <button class="btn-primary" onclick="saveSet()">Сохранить подход</button>
-      <button id="admin-panel-btn" onclick="alert('Вы вошли в режим Администратора. Вся статистика доступна в вашей Google Таблице!')">👑 Вход Администратора (God Mode)</button>
-    </div>
+    </section>
+
+    <!-- Вкладка 2: Календарь -->
+    <section id="tab-calendar" class="tab-content">
+      <div class="card">
+        <h2>📅 Календарь тренировок</h2>
+        <div id="calendar-container" style="margin-top: 8px;"></div>
+      </div>
+    </section>
+
+    <!-- Вкладка 3: Прогресс -->
+    <section id="tab-progress" class="tab-content">
+      <div class="subtabs">
+        <button id="subtab-analytics-btn" class="active" onclick="switchSubtab('analytics')">📊 Аналитика</button>
+        <button id="subtab-records-btn" onclick="switchSubtab('records')">🏆 Рекорды (PR)</button>
+      </div>
+
+      <div id="subtab-analytics" class="card card-scrollable">
+        <h2>Объем и распределение</h2>
+        <canvas id="muscle-chart" style="max-height: 200px; margin-bottom: 12px;"></canvas>
+        <div id="weekly-volume-stats" style="font-size: 0.8rem; color: var(--text-muted);">
+          <!-- Недельный объем -->
+        </div>
+      </div>
+
+      <div id="subtab-records" class="card card-scrollable" style="display: none;">
+        <h2>Личные рекорды (PR)</h2>
+        <div id="records-list">
+          <!-- Список рекордов по упражнениям -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка 4: Замеры & КБЖУ -->
+    <section id="tab-body" class="tab-content">
+      <div class="card">
+        <h2>⚖️ Замеры тела & КБЖУ</h2>
+        <div class="row">
+          <div>
+            <label>Вес тела (кг)</label>
+            <input type="number" id="body-weight-input" placeholder="71.7" step="0.1">
+          </div>
+          <div>
+            <label>Калории (ккал)</label>
+            <input type="number" id="body-kcal-input" placeholder="2500">
+          </div>
+        </div>
+        <button class="btn-success" onclick="saveBodyData()">Сохранить замер</button>
+      </div>
+    </section>
   </div>
 
+  <nav>
+    <button id="nav-workout" class="active" onclick="switchTab('workout')">
+      <svg viewBox="0 0 24 24"><path d="M6 5v14h2V5H6zm10 0v14h2V5h-2zM2 9v6h2V9H2zm18 0v6h2V9h-2zM9 11v2h6v-2H9z"/></svg>
+      Зал
+    </button>
+    <button id="nav-calendar" onclick="switchTab('calendar')">
+      <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+      Календарь
+    </button>
+    <button id="nav-progress" onclick="switchTab('progress')">
+      <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+      Прогресс
+    </button>
+    <button id="nav-body" onclick="switchTab('body')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      Замеры
+    </button>
+  </nav>
+
   <script>
-    const GOOGLE_SCRIPT_URL = "";
+    const GOOGLE_SCRIPT_URL = ""; // Вставьте ваш URL Apps Script
 
     const tg = window.Telegram?.WebApp;
     if (tg) {
@@ -94,6 +522,8 @@
     }
 
     let currentUser = null;
+    let workoutSets = JSON.parse(localStorage.getItem('gym_workout_sets') || '[]');
+    let bodyRecords = JSON.parse(localStorage.getItem('gym_body_records') || '[]');
 
     function handleAuth() {
       const nameInput = document.getElementById('user-nickname-input').value.trim();
@@ -108,7 +538,7 @@
 
       errorDiv.style.display = 'none';
 
-      // Проверка на мастер-коды админа (1-9999, 1999 или 9999)
+      // Проверка на ПИН-коды администратора
       const isAdmin = (pinInput === "1-9999" || pinInput === "1999" || pinInput === "9999");
       const adminName = isAdmin ? "Администратор (Ты)" : nameInput;
 
@@ -128,7 +558,8 @@
         document.getElementById('admin-panel-btn').style.display = 'block';
       }
 
-      sendTelemetry('log_activity', { event: 'Вход / Динамическая регистрация' });
+      renderTodaySets();
+      sendTelemetry('log_activity', { event: 'Вход в приложение' });
     }
 
     function sendTelemetry(action, payload = {}) {
@@ -142,15 +573,85 @@
       }).catch(err => console.error('Ошибка:', err));
     }
 
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      document.getElementById(`nav-${tab}`).classList.add('active');
+      sendTelemetry('log_activity', { event: 'Переключение вкладки', tab });
+    }
+
+    function switchSubtab(subtab) {
+      document.getElementById('subtab-analytics').style.display = subtab === 'analytics' ? 'block' : 'none';
+      document.getElementById('subtab-records').style.display = subtab === 'records' ? 'block' : 'none';
+      document.getElementById('subtab-analytics-btn').classList.toggle('active', subtab === 'analytics');
+      document.getElementById('subtab-records-btn').classList.toggle('active', subtab === 'records');
+    }
+
     function saveSet() {
       const exercise = document.getElementById('exercise-select').value;
+      const setType = document.getElementById('set-type-select').value;
       const weight = parseFloat(document.getElementById('input-weight').value) || 0;
       const reps = parseInt(document.getElementById('input-reps').value) || 0;
 
       if (!weight || !reps) return alert('Заполните вес и повторы');
 
-      sendTelemetry('log_workout', { exercise, weight, reps, setType: 'WORK', isPR: false });
-      alert('Подход сохранен!');
+      const setObj = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        exercise,
+        setType,
+        weight,
+        reps
+      };
+
+      workoutSets.push(setObj);
+      localStorage.setItem('gym_workout_sets', JSON.stringify(workoutSets));
+
+      renderTodaySets();
+      sendTelemetry('log_workout', { exercise, weight, reps, setType, isPR: false });
+      
+      document.getElementById('input-weight').value = '';
+      document.getElementById('input-reps').value = '';
+    }
+
+    function renderTodaySets() {
+      const container = document.getElementById('today-sets-list');
+      const todayStr = new Date().toDateString();
+      const todaySets = workoutSets.filter(s => new Date(s.date).toDateString() === todayStr);
+
+      if (todaySets.length === 0) {
+        container.innerHTML = '<div style="font-size:0.75rem; color:var(--text-muted); text-align:center; padding:10px;">Сегодня подходов пока нет</div>';
+        return;
+      }
+
+      container.innerHTML = todaySets.map(s => `
+        <div class="set-row">
+          <span class="set-type-badge type-${s.setType.toLowerCase()}">${s.setType}</span>
+          <strong style="flex:1;">${s.exercise}</strong>
+          <span>${s.weight} кг × ${s.reps}</span>
+        </div>
+      `).join('');
+    }
+
+    function saveBodyData() {
+      const weight = parseFloat(document.getElementById('body-weight-input').value) || 0;
+      const kcal = parseInt(document.getElementById('body-kcal-input').value) || 0;
+
+      if (!weight && !kcal) return alert('Введите параметры');
+
+      bodyRecords.push({ date: new Date().toISOString(), weight, kcal });
+      localStorage.setItem('gym_body_records', JSON.stringify(bodyRecords));
+      sendTelemetry('log_activity', { event: 'Сохранение замеров', weight, kcal });
+      alert('Замер сохранён!');
+    }
+
+    function toggleSettingsModal() {
+      document.getElementById('settings-modal').classList.toggle('active');
+    }
+
+    function changeTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
     }
 
     window.onload = function() {
