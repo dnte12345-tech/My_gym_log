@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.32-fixed';
+const CACHE_NAME = 'lift-lab-cache-v1.0.34';
 const CORE_ASSETS = ['./', './index.html'];
 const OPTIONAL_ASSETS = [
   'https://telegram.org/js/telegram-web-app.js',

@@ -183,7 +183,6 @@
     }
     #settings-modal.active { display: flex; }
 
-    /* Полноэкранная трофейная комната */
     #trophy-modal {
       position: fixed;
       inset: 0;
@@ -305,35 +304,6 @@
       cursor: pointer;
       user-select: none;
     }
-    .checkbox-item input[type="checkbox"] {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
-      border: 2px solid var(--border-color);
-      border-radius: 4px;
-      outline: none;
-      cursor: pointer;
-      position: relative;
-      background: var(--input-bg);
-      margin: 0;
-      flex-shrink: 0;
-      transition: all 0.2s ease;
-    }
-    .checkbox-item input[type="checkbox"]:checked {
-      background-color: var(--accent);
-      border-color: var(--accent);
-    }
-    .checkbox-item input[type="checkbox"]:checked::after {
-      content: '✓';
-      position: absolute;
-      color: var(--accent-text);
-      font-size: 12px;
-      font-weight: bold;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
 
     .row { display: flex; gap: 8px; }
     .row > div { flex: 1; }
@@ -349,6 +319,52 @@
       font-weight: 600; 
       cursor: pointer; 
     }
+
+    /* Селектор типа подхода (v1.0.34) */
+    .set-type-selector {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .set-type-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 0.72rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--input-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 700;
+      text-align: center;
+    }
+    .set-type-btn.active[data-type="WORK"] {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .set-type-btn.active[data-type="WARMUP"] {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+    .set-type-btn.active[data-type="DROP"] {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: #f43f5e;
+      color: #f43f5e;
+    }
+
+    /* Бейджи типов подходов */
+    .type-badge {
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-right: 4px;
+      text-transform: uppercase;
+    }
+    .type-badge.warmup { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .type-badge.drop { background: rgba(244, 63, 94, 0.2); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.4); }
 
     button { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -372,6 +388,7 @@
       font-size: 0.8rem; 
       color: var(--text-main);
     }
+    .set-item-row.warmup-row { opacity: 0.75; }
     .set-item-row:last-child { border-bottom: none; }
 
     .btn-close {
@@ -433,7 +450,6 @@
       font-size: 0.8rem;
     }
 
-    /* Виджет таймера отдыха v1.0.32 */
     #rest-timer-widget {
       background: var(--card-bg);
       border: 1px solid var(--accent);
@@ -496,6 +512,31 @@
       margin-top: 4px;
     }
 
+    /* Индикатор нагрузки на группы мышц (v1.0.34) */
+    .muscle-bar-item {
+      margin-bottom: 6px;
+    }
+    .muscle-bar-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .muscle-bar-bg {
+      height: 6px;
+      background: var(--input-bg);
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .muscle-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
     .version-info {
       text-align: center;
       font-size: 0.75rem;
@@ -551,8 +592,8 @@
 
       <div class="card" style="margin: 12px 0; padding: 12px;">
         <h3 style="color:var(--accent); margin-bottom:6px; font-size:0.9rem;">🛡️ Резервная копия</h3>
-        <p style="font-size:0.72rem; color:var(--text-muted); line-height:1.4; margin-bottom:9px;">Сохраните текстовый файл (.txt) в память iPhone. В копию входят тренировки, упражнения, шаблоны, замеры, КБЖУ и тема.</p>
-        <button class="btn-success" style="margin-bottom:7px;" onclick="exportBackup()">⬇️ Скачать бэкап (.txt для iOS)</button>
+        <p style="font-size:0.72rem; color:var(--text-muted); line-height:1.4; margin-bottom:9px;">Сохраните текстовый файл (.txt) через системное меню iOS «Сохранить в Файлы».</p>
+        <button class="btn-success" style="margin-bottom:7px;" onclick="exportBackup()">⬇️ Сохранить бэкап (iOS Share)</button>
         <button class="btn-step" onclick="document.getElementById('backup-file-input').click()">⬆️ Восстановить из файла</button>
         <input id="backup-file-input" type="file" accept=".txt,.json,text/plain,application/json" style="display:none" onchange="importBackupFromFile(this)">
         <div id="backup-status" role="status" style="font-size:0.7rem; color:var(--text-muted); margin-top:7px;"></div>
@@ -561,7 +602,7 @@
         Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.32</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.34</div>
     </div>
   </div>
 
@@ -587,7 +628,7 @@
         </div>
       </div>
 
-      <!-- Виджет таймера отдыха между подходами (открывается при запуске тренировки) -->
+      <!-- Виджет таймера отдыха -->
       <div id="rest-timer-widget" class="hidden">
         <div>
           <div style="font-size: 0.62rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Отдых между подходами</div>
@@ -618,6 +659,13 @@
         <select id="exercise-select" onchange="onExerciseChange()"></select>
         <div id="last-workout-info" style="font-size: 0.75rem; color: var(--accent); margin-bottom: 8px; font-weight: 600;"></div>
         
+        <label>Тип подхода</label>
+        <div class="set-type-selector">
+          <button class="set-type-btn active" data-type="WORK" onclick="selectSetType('WORK')">Рабочий</button>
+          <button class="set-type-btn" data-type="WARMUP" onclick="selectSetType('WARMUP')">Разминка</button>
+          <button class="set-type-btn" data-type="DROP" onclick="selectSetType('DROP')">Дропсет</button>
+        </div>
+
         <div class="row">
           <div>
             <label>Вес (кг)</label>
@@ -682,7 +730,7 @@
             <div class="analytics-change" id="analytics-sessions-change">—</div>
           </div>
           <div class="analytics-metric">
-            <div class="analytics-label">Подходов</div>
+            <div class="analytics-label">Рабочих подходов</div>
             <div class="analytics-value" id="analytics-sets">0</div>
             <div class="analytics-change" id="analytics-sets-change">—</div>
           </div>
@@ -700,9 +748,17 @@
         <div style="font-size:0.62rem; color:var(--text-muted); margin-top:7px; text-align:right;">Сравнение с предыдущим таким же периодом</div>
       </div>
 
+      <!-- Визуализация мышечных групп (v1.0.34) -->
+      <div class="card" style="padding: 10px 12px;">
+        <h2>💪 Объём по группам мышц (За неделю)</h2>
+        <div id="muscle-groups-distribution" style="margin-top: 6px;">
+          <p style="color: var(--text-muted); font-size: 0.75rem;">Загрузка данных...</p>
+        </div>
+      </div>
+
       <div class="card" style="max-height: 170px; display: flex; flex-direction: column;">
         <div id="pr-card-container" style="width: 100%; margin-bottom: 4px; display: none;">
-          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; justify-content: space-around; text-align: center;">
+          <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; display: flex; justify-around; text-align: center;">
             <div>
               <div style="font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase;">Макс. вес</div>
               <div id="stat-max-weight" style="font-size: 0.85rem; font-weight: 800; color: var(--accent);">0 кг</div>
@@ -937,7 +993,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.32";
+    const APP_VERSION = "v1.0.34";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -947,10 +1003,20 @@
     const SESSION_TIMEOUT_MS = 30 * 24 * 60 * 60 * 1000;
     let lockTimerInterval = null;
 
-    // Переменные для живого таймера v1.0.32
     let isLiveSession = false;
     let timerInterval = null;
     let timerSecondsLeft = 0;
+    let currentSetType = 'WORK'; // WORK, WARMUP, DROP
+
+    // Маппинг упражнений на группы мышц (v1.0.34)
+    const muscleMap = {
+      "Спина": ["Тяга горизонтальная на спину", "Тяга вертикальная на спину", "Подтягивания в гравитроне", "Румынская тяга", "Румынская тяга в Смите"],
+      "Ноги / Ягодицы": ["Приседания в Смите", "Ягодичный мост в Смите", "Выпады с гантелями", "Сгибания ног на ягодицы", "Разгибания ног", "Сведение бедер", "Разведение бедер", "Отведение ноги назад", "Жим платформы"],
+      "Плечи": ["Плечи с гантелями", "Жим плечи в блоке"],
+      "Грудь": ["Жим груди в блоке", "Сведения на грудь в блоке"],
+      "Руки": ["Подъем штанги на бицепс", "Бицепс в блоке", "Трицепс в блоке", "Бицепс с гантелями"],
+      "Пресс": ["Пресс вертикальный"]
+    };
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -973,6 +1039,14 @@
         return Promise.resolve(true);
       }
     };
+
+    function selectSetType(type) {
+      triggerHaptic();
+      currentSetType = type;
+      document.querySelectorAll('.set-type-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+      });
+    }
 
     function changeTheme(themeName) {
       document.body.setAttribute('data-theme', themeName);
@@ -1389,12 +1463,13 @@
       const select = document.getElementById('exercise-select');
       if (!select) return;
       const selected = select.value;
-      const lastLogs = workoutLogs.filter(log => log.exercise === selected);
+      // При расчете последнего веса смотрим только рабочие или дропсеты
+      const lastLogs = workoutLogs.filter(log => log.exercise === selected && log.setType !== 'WARMUP');
       const infoBox = document.getElementById('last-workout-info');
       
       if (lastLogs.length > 0) {
         const last = lastLogs[lastLogs.length - 1];
-        if (infoBox) infoBox.textContent = `Прошлый вес: ${last.weight} кг × ${last.reps} повт.`;
+        if (infoBox) infoBox.textContent = `Прошлый рабочий вес: ${last.weight} кг × ${last.reps} повт.`;
         document.getElementById('input-weight').value = last.weight;
         document.getElementById('input-reps').value = last.reps;
       } else {
@@ -1417,9 +1492,10 @@
       return Math.round(weight * (1 + reps / 30));
     }
 
-    function isPersonalRecord(exercise, weight, reps) {
+    function isPersonalRecord(exercise, weight, reps, setType) {
+      if (setType === 'WARMUP') return false; // Разминка не учитывается в PR
       const current1RM = calculate1RM(weight, reps);
-      const exerciseLogs = workoutLogs.filter(l => l.exercise === exercise && Number.isFinite(Number(l.weight)) && Number.isFinite(Number(l.reps)));
+      const exerciseLogs = workoutLogs.filter(l => l.exercise === exercise && l.setType !== 'WARMUP' && Number.isFinite(Number(l.weight)) && Number.isFinite(Number(l.reps)));
       if (exerciseLogs.length === 0) return true;
       const maxExisting1RM = Math.max(...exerciseLogs.map(l => calculate1RM(Number(l.weight), Number(l.reps))));
       return current1RM > maxExisting1RM;
@@ -1435,6 +1511,10 @@
           return (ta || 0) - (tb || 0) || Number(a.id) - Number(b.id);
         });
         logs.forEach(log => {
+          if (log.setType === 'WARMUP') {
+            log.isPR = false;
+            return;
+          }
           const w = Number(log.weight), r = Number(log.reps);
           const valid = Number.isFinite(w) && w >= 0 && Number.isInteger(r) && r >= 1;
           const score = valid ? calculate1RM(w, r) : -Infinity;
@@ -1463,7 +1543,8 @@
 
       const now = new Date();
       const todayStr = dateKey(now);
-      const isPR = isPersonalRecord(exercise, weight, reps);
+      const setType = currentSetType || 'WORK';
+      const isPR = isPersonalRecord(exercise, weight, reps, setType);
 
       const newLog = {
         id: Date.now(),
@@ -1472,6 +1553,7 @@
         exercise,
         weight,
         reps,
+        setType,
         isPR
       };
 
@@ -1517,12 +1599,20 @@
 
         sets.forEach((set, index) => {
           const row = document.createElement('div');
-          row.className = 'set-item-row';
+          const isWarmup = set.setType === 'WARMUP';
+          const isDrop = set.setType === 'DROP';
+
+          row.className = `set-item-row ${isWarmup ? 'warmup-row' : ''}`;
           const oneRM = calculate1RM(set.weight, set.reps);
+
+          let badgeHtml = '';
+          if (isWarmup) badgeHtml = '<span class="type-badge warmup">Разминка</span>';
+          else if (isDrop) badgeHtml = '<span class="type-badge drop">Дроп</span>';
+
           row.innerHTML = `
-            <span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. <span style="font-size:0.7rem; color:var(--text-muted);">(1RM: ${oneRM}кг)</span> ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
+            <span>${badgeHtml}Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${!isWarmup ? `<span style="font-size:0.7rem; color:var(--text-muted);">(1RM: ${oneRM}кг)</span>` : ''} ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
             <div style="display:flex; gap:4px; align-items:center;">
-              <button class="btn-step" onclick="duplicateSet(${set.weight}, ${set.reps}, '${set.exercise}')" title="Быстрый повтор подхода" style="padding:2px 6px;">⧉</button>
+              <button class="btn-step" onclick="duplicateSet(${set.weight}, ${set.reps}, '${set.exercise}', '${set.setType || 'WORK'}')" title="Быстрый повтор" style="padding:2px 6px;">⧉</button>
               <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
             </div>
           `;
@@ -1539,11 +1629,11 @@
       container.appendChild(exportBtn);
     }
 
-    async function duplicateSet(weight, reps, exercise) {
+    async function duplicateSet(weight, reps, exercise, setType = 'WORK') {
       triggerHaptic();
       const now = new Date();
       const todayStr = dateKey(now);
-      const isPR = isPersonalRecord(exercise, weight, reps);
+      const isPR = isPersonalRecord(exercise, weight, reps, setType);
 
       const newLog = {
         id: Date.now(),
@@ -1552,6 +1642,7 @@
         exercise,
         weight,
         reps,
+        setType,
         isPR
       };
 
@@ -1578,15 +1669,17 @@
       todayLogs.forEach(set => {
         if (!grouped[set.exercise]) grouped[set.exercise] = [];
         grouped[set.exercise].push(set);
-        totalTonnage += set.weight * set.reps;
+        if (set.setType !== 'WARMUP') {
+          totalTonnage += set.weight * set.reps;
+        }
       });
 
       Object.keys(grouped).forEach(exName => {
         const sets = grouped[exName];
-        const setsStr = sets.map(s => `${s.weight}кг×${s.reps}`).join(', ');
+        const setsStr = sets.map(s => `${s.weight}кг×${s.reps}${s.setType === 'WARMUP' ? '(Р)' : ''}`).join(', ');
         lines.push(`• ${exName}: ${setsStr}`);
       });
-      lines.push(`📊 Общий тоннаж: ${totalTonnage} кг`);
+      lines.push(`📊 Рабочий тоннаж: ${totalTonnage} кг`);
 
       const textToCopy = lines.join('\n');
 
@@ -1686,9 +1779,15 @@
 
           sets.forEach((set, index) => {
             const row = document.createElement('div');
-            row.className = 'set-item-row';
+            const isWarmup = set.setType === 'WARMUP';
+            row.className = `set-item-row ${isWarmup ? 'warmup-row' : ''}`;
+            
+            let badgeHtml = '';
+            if (isWarmup) badgeHtml = '<span class="type-badge warmup">Разминка</span>';
+            else if (set.setType === 'DROP') badgeHtml = '<span class="type-badge drop">Дроп</span>';
+
             row.innerHTML = `
-              <span>Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
+              <span>${badgeHtml}Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
               <div style="display:flex; gap:4px; align-items:center;">
                 <button class="btn-step" onclick="editSetFromCalendar(${set.id}, '${dateStr}')" title="Редактировать подход" style="padding:2px 6px;">✏️</button>
                 <button class="btn-close" onclick="deleteSetFromCalendar(${set.id}, '${dateStr}')" title="Удалить">&times;</button>
@@ -1843,7 +1942,7 @@
         return;
       }
 
-      const isPR = isPersonalRecord(exercise, weight, reps);
+      const isPR = isPersonalRecord(exercise, weight, reps, 'WORK');
       const newLog = {
         id: Date.now(),
         dateStr: dateStr,
@@ -1851,6 +1950,7 @@
         exercise,
         weight,
         reps,
+        setType: 'WORK',
         isPR
       };
 
@@ -2147,7 +2247,7 @@
       const container = document.getElementById('trophy-room-list');
       if (!container) return;
 
-      const exercisesWithLogs = exercises.filter(ex => workoutLogs.some(l => l.exercise === ex));
+      const exercisesWithLogs = exercises.filter(ex => workoutLogs.some(l => l.exercise === ex && l.setType !== 'WARMUP'));
 
       if (exercisesWithLogs.length === 0) {
         container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">Пока нет записей для рекордов</p>';
@@ -2156,7 +2256,7 @@
 
       container.innerHTML = '';
       exercisesWithLogs.forEach(ex => {
-        const logs = workoutLogs.filter(l => l.exercise === ex);
+        const logs = workoutLogs.filter(l => l.exercise === ex && l.setType !== 'WARMUP');
         const maxWeight = Math.max(...logs.map(l => l.weight));
         const max1RM = Math.max(...logs.map(l => calculate1RM(l.weight, l.reps)));
 
@@ -2165,7 +2265,7 @@
         item.innerHTML = `
           <div>
             <div style="font-weight: 700; color: var(--text-main);">${ex}</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted);">Всего сетов: ${logs.length}</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Всего рабочих сетов: ${logs.length}</div>
           </div>
           <div style="text-align: right;">
             <div><span style="color: var(--text-muted); font-size: 0.65rem;">MAX:</span> <strong style="color: var(--accent);">${maxWeight} кг</strong></div>
@@ -2232,14 +2332,15 @@
     function calculatePeriodStats(startKey, endKey) {
       const logs = workoutLogs.filter(log => log.dateStr >= startKey && log.dateStr < endKey);
       const sessions = new Set(logs.map(log => log.dateStr)).size;
-      const tonnage = logs.reduce((sum, log) => {
+      const workingLogs = logs.filter(log => log.setType !== 'WARMUP');
+      const tonnage = workingLogs.reduce((sum, log) => {
         const weight = Number(log.weight) || 0;
         const reps = Number(log.reps) || 0;
         return sum + weight * reps;
       }, 0);
       return {
         sessions,
-        sets: logs.length,
+        sets: workingLogs.length,
         tonnage,
         average: sessions ? tonnage / sessions : 0
       };
@@ -2282,6 +2383,64 @@
       });
     }
 
+    // Рендер распределения по группам мышц за неделю (v1.0.34)
+    function renderMuscleGroupsDistribution() {
+      const container = document.getElementById('muscle-groups-distribution');
+      if (!container) return;
+
+      const period = getAnalyticsPeriods();
+      const weeklyLogs = workoutLogs.filter(log => log.dateStr >= period.currentStart && log.dateStr < period.currentEnd && log.setType !== 'WARMUP');
+
+      if (weeklyLogs.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За последнюю неделю подходов не зафиксировано.</p>';
+        return;
+      }
+
+      const muscleCounts = {
+        "Спина": 0,
+        "Ноги / Ягодицы": 0,
+        "Плечи": 0,
+        "Грудь": 0,
+        "Руки": 0,
+        "Пресс": 0
+      };
+
+      weeklyLogs.forEach(log => {
+        let foundGroup = false;
+        for (const [group, exList] of Object.entries(muscleMap)) {
+          if (exList.includes(log.exercise)) {
+            muscleCounts[group]++;
+            foundGroup = true;
+            break;
+          }
+        }
+        if (!foundGroup) {
+          muscleCounts["Спина"]++; // По умолчанию
+        }
+      });
+
+      const totalSets = Object.values(muscleCounts).reduce((a, b) => a + b, 0);
+
+      container.innerHTML = '';
+      Object.entries(muscleCounts).forEach(([group, count]) => {
+        if (count > 0) {
+          const percent = Math.round((count / totalSets) * 100);
+          const item = document.createElement('div');
+          item.className = 'muscle-bar-item';
+          item.innerHTML = `
+            <div class="muscle-bar-header">
+              <span>${group}</span>
+              <span style="color: var(--accent);">${count} подх. (${percent}%)</span>
+            </div>
+            <div class="muscle-bar-bg">
+              <div class="muscle-bar-fill" style="width: ${percent}%;"></div>
+            </div>
+          `;
+          container.appendChild(item);
+        }
+      });
+    }
+
     function updateChart() {
       if (typeof Chart === 'undefined') return;
       const select = document.getElementById('progress-exercise-select');
@@ -2293,6 +2452,7 @@
       );
 
       renderAnalyticsSummary();
+      renderMuscleGroupsDistribution();
 
       const prContainer = document.getElementById('pr-card-container');
       const chartCanvas = document.getElementById('progressChart');
@@ -2304,8 +2464,10 @@
         if (prContainer) prContainer.style.display = 'none';
         const tonnageByDate = {};
         filteredLogs.forEach(log => {
-          tonnageByDate[log.dateStr] = (tonnageByDate[log.dateStr] || 0)
-            + ((Number(log.weight) || 0) * (Number(log.reps) || 0));
+          if (log.setType !== 'WARMUP') {
+            tonnageByDate[log.dateStr] = (tonnageByDate[log.dateStr] || 0)
+              + ((Number(log.weight) || 0) * (Number(log.reps) || 0));
+          }
         });
 
         const sortedDates = Object.keys(tonnageByDate).sort();
@@ -2332,7 +2494,7 @@
               legend: { display: false },
               tooltip: {
                 callbacks: {
-                  label: context => `Тоннаж: ${formatMetricNumber(context.parsed.y)} кг`
+                  label: context => `Рабочий тоннаж: ${formatMetricNumber(context.parsed.y)} кг`
                 }
               }
             },
@@ -2344,7 +2506,7 @@
         });
       } else {
         if (prContainer) prContainer.style.display = 'block';
-        const exerciseLogs = filteredLogs.filter(log => log.exercise === selected);
+        const exerciseLogs = filteredLogs.filter(log => log.exercise === selected && log.setType !== 'WARMUP');
         const maxW = exerciseLogs.length ? Math.max(...exerciseLogs.map(log => Number(log.weight) || 0)) : 0;
         const max1RM = exerciseLogs.length
           ? Math.max(...exerciseLogs.map(log => calculate1RM(Number(log.weight) || 0, Number(log.reps) || 0)))
@@ -2662,6 +2824,19 @@
       return entries;
     }
 
+    function fallbackDownload(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      setBackupStatus('Резервная копия сохранена.');
+      triggerHaptic();
+    }
+
     function exportBackup() {
       try {
         const entries = collectBackupEntries();
@@ -2675,19 +2850,26 @@
           profileSuffix: userId,
           entries
         };
-        
-        // Экспорт в формате text/plain c расширением .txt для корректного сохранения в «Файлы» на iOS
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Lift-Lab-backup-${dateKey(new Date())}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
-        setBackupStatus(`Резервная копия сохранена (.txt). Записей: ${Object.keys(entries).length}.`);
-        triggerHaptic();
+
+        const fileName = `Lift-Lab-backup-${dateKey(new Date())}.txt`;
+        const jsonStr = JSON.stringify(backup, null, 2);
+        const blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
+
+        const file = new File([blob], fileName, { type: 'text/plain' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: 'Резервная копия Lift Lab',
+            text: 'Файл бэкапа тренировок'
+          }).then(() => {
+            setBackupStatus('Файл передан в системное меню сохранения.');
+            triggerHaptic();
+          }).catch(err => {
+            if (err.name !== 'AbortError') fallbackDownload(blob, fileName);
+          });
+        } else {
+          fallbackDownload(blob, fileName);
+        }
       } catch (error) {
         console.error('Backup export error:', error);
         setBackupStatus('Не удалось создать резервную копию.', true);
