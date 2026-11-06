@@ -228,8 +228,6 @@
       flex: 1;
       overflow-y: auto;
       min-height: 0;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 20px;
     }
 
     label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
@@ -275,6 +273,7 @@
       cursor: pointer; 
     }
 
+    /* Селектор типа подхода */
     .set-type-selector {
       display: flex;
       gap: 4px;
@@ -308,6 +307,7 @@
       color: #f43f5e;
     }
 
+    /* Бейджи типов подходов */
     .type-badge {
       font-size: 0.6rem;
       font-weight: 800;
@@ -465,6 +465,7 @@
       margin-top: 4px;
     }
 
+    /* Индикатор нагрузки на группы мышц */
     .muscle-bar-item {
       margin-bottom: 6px;
     }
@@ -495,6 +496,22 @@
       color: var(--text-muted);
       margin-top: 8px;
     }
+
+    /* При открытой экранной клавиатуре разрешаем прокрутку формы и поднимаем поля ввода. */
+    body.keyboard-open .container {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-bottom: 24px;
+    }
+    body.keyboard-open #tab-workout {
+      height: auto;
+      min-height: 100%;
+      overflow: visible;
+    }
+    body.keyboard-open #tab-workout > .card {
+      scroll-margin-top: 12px;
+    }
+    #input-weight, #input-reps { scroll-margin-top: 24px; scroll-margin-bottom: 180px; }
   </style>
 </head>
 <body data-theme="midnight-neon">
@@ -504,9 +521,9 @@
     <div class="card" style="width: 100%; max-width: 320px; text-align: center;">
       <h2 style="margin-bottom: 12px; color: var(--accent);">Вход в Lift Lab</h2>
       <label style="text-align: left;">Логин</label>
-      <input type="text" id="auth-login" placeholder="Введите логин" style="margin-bottom: 10px;" enterkeyhint="done" onkeyup="if(event.key==='Enter') login();">
+      <input type="text" id="auth-login" placeholder="Введите логин" style="margin-bottom: 10px;">
       <label style="text-align: left;">Пароль</label>
-      <input type="password" id="auth-password" placeholder="Введите пароль" enterkeyhint="done" onkeyup="if(event.key==='Enter') login();">
+      <input type="password" id="auth-password" placeholder="Введите пароль">
       <button id="auth-btn" class="btn-primary" onclick="login()" style="margin-top: 6px;">Войти</button>
       <div id="auth-error" style="color: var(--danger); font-size: 0.75rem; margin-top: 8px; display: none;"></div>
       <div id="auth-lock-timer" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 8px; display: none;"></div>
@@ -536,7 +553,7 @@
       <div style="margin-bottom: 12px;">
         <label>База тренажеров</label>
         <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-          <input type="text" id="new-exercise-name" placeholder="Новый тренажер" style="margin-bottom: 0;" enterkeyhint="done" onkeyup="if(event.key==='Enter') addNewExercise();">
+          <input type="text" id="new-exercise-name" placeholder="Новый тренажер" style="margin-bottom: 0;">
           <button class="btn-success" onclick="addNewExercise()" style="width: 90px; flex-shrink: 0; font-size: 0.75rem;">+ Добавить</button>
         </div>
         <div id="exercise-list-manage" style="max-height: 120px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;"></div>
@@ -554,7 +571,7 @@
         Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.37</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.36</div>
     </div>
   </div>
 
@@ -605,7 +622,7 @@
         </div>
       </div>
 
-      <div class="card card-scrollable" id="workout-form-card">
+      <div class="card">
         <h2>Запись подхода</h2>
         <label for="exercise-select">Тренажер / Упражнение</label>
         <select id="exercise-select" onchange="onExerciseChange()"></select>
@@ -621,7 +638,7 @@
         <div class="row">
           <div>
             <label>Вес (кг)</label>
-            <input type="number" id="input-weight" placeholder="0" step="0.5" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+            <input type="number" id="input-weight" placeholder="0" step="0.5" enterkeyhint="next" inputmode="decimal">
             <div class="quick-adjust">
               <button class="btn-step" onclick="adjustValue('input-weight', -2.5)">-2.5</button>
               <button class="btn-step" onclick="adjustValue('input-weight', 2.5)">+2.5</button>
@@ -629,7 +646,7 @@
           </div>
           <div>
             <label>Повторения</label>
-            <input type="number" id="input-reps" placeholder="0" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+            <input type="number" id="input-reps" placeholder="0" enterkeyhint="done" inputmode="numeric">
             <div class="quick-adjust">
               <button class="btn-step" onclick="adjustValue('input-reps', -1)">-1</button>
               <button class="btn-step" onclick="adjustValue('input-reps', 1)">+1</button>
@@ -637,7 +654,7 @@
           </div>
         </div>
         
-        <button class="btn-primary" id="btn-save-set" onclick="addSet()">Сохранить подход</button>
+        <button class="btn-primary" onclick="addSet()">Сохранить подход</button>
       </div>
 
       <div class="card card-scrollable">
@@ -662,7 +679,7 @@
       </div>
     </section>
 
-    <!-- Вкладка 3: Прогресс -->
+    <!-- Вкладка 3: Прогресс (Реорганизация v1.0.36) -->
     <section id="tab-progress" class="tab-content">
       
       <!-- Переключатель подвкладок внутри "Прогресса" -->
@@ -740,7 +757,7 @@
         </div>
       </div>
 
-      <!-- Подвкладка 2: Личные рекорды -->
+      <!-- Подвкладка 2: Личные рекорды (Вынесено отдельно v1.0.36) -->
       <div id="progress-subtab-records" class="card card-scrollable" style="display: none; flex-direction: column; gap: 8px;">
         <h2>🏆 Личные рекорды по упражнениям</h2>
         <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px;">Максимальный вес и расчётный 1RM из рабочих подходов:</p>
@@ -753,15 +770,12 @@
 
     <!-- Вкладка 4: Шаблоны -->
     <section id="tab-templates" class="tab-content">
-      <div class="card" id="template-editor-card">
-        <h2 id="template-editor-title">Создать шаблон тренировки</h2>
-        <input type="text" id="new-template-name" placeholder="Название шаблона (напр. Спина / Бицепс)" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+      <div class="card">
+        <h2>Создать шаблон тренировки</h2>
+        <input type="text" id="new-template-name" placeholder="Название шаблона (напр. Спина / Бицепс)">
         <label>Выберите упражнения в шаблон</label>
         <div id="template-checkboxes" style="max-height: 120px; overflow-y: auto; margin-bottom: 8px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px;"></div>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn-success" id="btn-save-template" onclick="addNewTemplate()">Сохранить шаблон</button>
-          <button class="btn-step" id="btn-cancel-template" onclick="cancelEditTemplate()" style="display: none; width: 100px;">Отмена</button>
-        </div>
+        <button class="btn-success" onclick="addNewTemplate()">Сохранить шаблон</button>
       </div>
 
       <div class="card card-scrollable">
@@ -780,75 +794,73 @@
       </div>
 
       <div id="body-subtab-calc" class="card card-scrollable" style="display: flex; flex-direction: column; gap: 8px;">
-        <details style="margin-bottom: 4px;">
-          <summary style="font-size: 0.8rem; color: var(--accent); font-weight: 700;">👤 Базовый профиль (Пол, Рост, Возраст, Активность)</summary>
-          <div style="padding: 10px;">
-            <div class="row" style="margin-bottom:4px;">
-              <div>
-                <label>Пол</label>
-                <select id="user-gender" onchange="recalculateTDEE()">
-                  <option value="male" selected>Мужской</option>
-                  <option value="female">Женский</option>
-                </select>
-              </div>
-              <div>
-                <label>Возраст (лет)</label>
-                <input type="number" id="user-age" value="31" placeholder="31" oninput="recalculateTDEE()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
-              </div>
-            </div>
-            <div class="row" style="margin-bottom:4px;">
-              <div>
-                <label>Рост (см)</label>
-                <input type="number" id="user-height" value="179" placeholder="179" oninput="recalculateTDEE()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
-              </div>
-              <div>
-                <label>Текущий вес (кг)</label>
-                <input type="number" id="user-weight" value="71.7" placeholder="71.7" step="0.1" oninput="recalculateTDEE()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
-              </div>
-            </div>
-            <label>Силовые тренировки / Активность</label>
-            <select id="user-activity" onchange="recalculateTDEE()">
-              <option value="1.2">Минимальная (сидячая)</option>
-              <option value="1.375">1-3 тренировки в неделю</option>
-              <option value="1.55" selected>3-5 тренировок в неделю</option>
-              <option value="1.725">6-7 интенсивных тренировок</option>
-            </select>
-          </div>
-        </details>
-
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
-          <div id="tdee-info-box" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-color); padding: 6px; border-radius: 6px; margin-bottom: 8px;">
+          <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">⚙️ Параметры для расчета расхода ккал</h2>
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Пол</label>
+              <select id="user-gender" onchange="recalculateTDEE()">
+                <option value="male" selected>Мужской</option>
+                <option value="female">Женский</option>
+              </select>
+            </div>
+            <div>
+              <label>Возраст (лет)</label>
+              <input type="number" id="user-age" value="31" placeholder="31" oninput="recalculateTDEE()">
+            </div>
+          </div>
+          <div class="row" style="margin-bottom:4px;">
+            <div>
+              <label>Рост (см)</label>
+              <input type="number" id="user-height" value="179" placeholder="179" oninput="recalculateTDEE()">
+            </div>
+            <div>
+              <label>Текущий вес (кг)</label>
+              <input type="number" id="user-weight" value="71.7" placeholder="71.7" step="0.1" oninput="recalculateTDEE()">
+            </div>
+          </div>
+          <label>Силовые тренировки / Активность</label>
+          <select id="user-activity" onchange="recalculateTDEE()">
+            <option value="1.2">Минимальная (сидячая)</option>
+            <option value="1.375">1-3 тренировки в неделю</option>
+            <option value="1.55" selected>3-5 тренировок в неделю</option>
+            <option value="1.725">6-7 интенсивных тренировок</option>
+          </select>
+          <div id="tdee-info-box" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-color); padding: 6px; border-radius: 6px; margin-top: 4px;">
             BMR: <strong id="bmr-val" style="color:var(--text-main);">1686</strong> ккал | База (TDEE): <strong id="tdee-val" style="color:var(--accent);">2613</strong> ккал/день
           </div>
+        </div>
+
+        <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">📊 Дневник за сегодня</h2>
           <div class="row" style="margin-bottom:4px;">
             <div>
               <label>Съедено (ккал)</label>
-              <input type="number" id="input-kcal-in" placeholder="2600" oninput="calculateKBDZBalance()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-kcal-in" placeholder="2600" oninput="calculateKBDZBalance()">
             </div>
             <div>
               <label>Шаги за день</label>
-              <input type="number" id="input-daily-steps" placeholder="8000" oninput="calculateKBDZBalance()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-daily-steps" placeholder="8000" oninput="calculateKBDZBalance()">
             </div>
           </div>
 
           <label>Макронутриенты (Б / Ж / У в граммах)</label>
           <div class="row" style="margin-bottom:6px;">
             <div>
-              <input type="number" id="input-protein" placeholder="Белки (г)" oninput="calculateKBDZBalance()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-protein" placeholder="Белки (г)" oninput="calculateKBDZBalance()">
             </div>
             <div>
-              <input type="number" id="input-fats" placeholder="Жиры (г)" oninput="calculateKBDZBalance()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-fats" placeholder="Жиры (г)" oninput="calculateKBDZBalance()">
             </div>
             <div>
-              <input type="number" id="input-carbs" placeholder="Угл (г)" oninput="calculateKBDZBalance()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-carbs" placeholder="Угл (г)" oninput="calculateKBDZBalance()">
             </div>
           </div>
 
           <div class="row" style="margin-bottom:4px;">
             <div>
               <label>Доп. активные ккал (кардио/тренажеры)</label>
-              <input type="number" id="input-extra-active-kcal" placeholder="0" oninput="calculateKBDZBalance()" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-extra-active-kcal" placeholder="0" oninput="calculateKBDZBalance()">
             </div>
           </div>
 
@@ -874,31 +886,31 @@
           <div class="row" style="margin-bottom:4px;">
             <div>
               <label>Вес тела (кг)</label>
-              <input type="number" id="input-body-weight" placeholder="71.7" step="0.1" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-body-weight" placeholder="71.7" step="0.1">
             </div>
             <div>
               <label>Талия (см)</label>
-              <input type="number" id="input-body-waist" placeholder="0" step="0.5" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-body-waist" placeholder="0" step="0.5">
             </div>
           </div>
           <div class="row" style="margin-bottom:4px;">
             <div>
               <label>Грудь (см)</label>
-              <input type="number" id="input-body-chest" placeholder="0" step="0.5" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-body-chest" placeholder="0" step="0.5">
             </div>
             <div>
               <label>Бедра (см)</label>
-              <input type="number" id="input-body-hips" placeholder="0" step="0.5" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-body-hips" placeholder="0" step="0.5">
             </div>
           </div>
           <div class="row" style="margin-bottom:6px;">
             <div>
               <label>Бицепс (см)</label>
-              <input type="number" id="input-body-bicep" placeholder="0" step="0.5" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-body-bicep" placeholder="0" step="0.5">
             </div>
             <div>
               <label>Ягодицы (см)</label>
-              <input type="number" id="input-body-glutes" placeholder="0" step="0.5" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+              <input type="number" id="input-body-glutes" placeholder="0" step="0.5">
             </div>
           </div>
           <button class="btn-primary" onclick="addBodyRecord()" style="margin-bottom: 8px;">Записать параметры</button>
@@ -955,7 +967,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.37";
+    const APP_VERSION = "v1.0.36";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -969,9 +981,8 @@
     let timerInterval = null;
     let timerSecondsLeft = 0;
     let currentSetType = 'WORK'; // WORK, WARMUP, DROP
-    let selectedExercise = null; 
-    let editingTemplateId = null; // ID редактируемого шаблона
 
+    // Маппинг упражнений на группы мышц
     const muscleMap = {
       "Спина": ["Тяга горизонтальная на спину", "Тяга вертикальная на спину", "Подтягивания в гравитроне", "Румынская тяга", "Румынская тяга в Смите"],
       "Ноги / Ягодицы": ["Приседания в Смите", "Ягодичный мост в Смите", "Выпады с гантелями", "Сгибания ног на ягодицы", "Разгибания ног", "Сведение бедер", "Разведение бедер", "Отведение ноги назад", "Жим платформы"],
@@ -1278,19 +1289,48 @@
       document.addEventListener(evt, updateLastActivity, { passive: true });
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const inputs = document.querySelectorAll('#tab-workout input[type="number"], #tab-workout input[type="text"]');
-      inputs.forEach(input => {
+    // Корректная работа формы с клавиатурой iOS/Telegram WebView.
+    (function setupWorkoutKeyboard() {
+      const weightInput = document.getElementById('input-weight');
+      const repsInput = document.getElementById('input-reps');
+      const formCard = document.querySelector('#tab-workout .card:nth-of-type(3)');
+      const viewport = window.visualViewport;
+      const updateKeyboardLayout = () => {
+        const keyboardVisible = Boolean(viewport && window.screen.height - viewport.height > 140);
+        document.body.classList.toggle('keyboard-open', keyboardVisible && document.activeElement?.matches('input, textarea, select'));
+      };
+      if (viewport) {
+        viewport.addEventListener('resize', updateKeyboardLayout);
+        viewport.addEventListener('scroll', updateKeyboardLayout);
+      }
+      [weightInput, repsInput].forEach(input => {
+        if (!input) return;
         input.addEventListener('focus', () => {
-          setTimeout(() => {
-            const btnSave = document.getElementById('btn-save-set');
-            if (btnSave) {
-              btnSave.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          document.body.classList.add('keyboard-open');
+          updateKeyboardLayout();
+          requestAnimationFrame(() => {
+            if (formCard) formCard.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          });
+        });
+        input.addEventListener('blur', () => {
+          window.setTimeout(() => {
+            if (!document.activeElement?.matches('input, textarea, select')) {
+              document.body.classList.remove('keyboard-open');
             }
-          }, 300);
+          }, 180);
+        });
+        input.addEventListener('keydown', event => {
+          if (event.key !== 'Enter') return;
+          event.preventDefault();
+          if (input === weightInput && repsInput) {
+            repsInput.focus();
+          } else {
+            input.blur(); // Enter на поле повторений работает как Done и закрывает клавиатуру.
+          }
         });
       });
-    });
+    })();
 
     function triggerHaptic() {
       if (tg?.HapticFeedback) {
@@ -1416,11 +1456,17 @@
       });
     }
 
+    const ACTIVE_EXERCISE_KEY = 'lift_lab_active_exercise';
+    const ACTIVE_TEMPLATE_KEY = 'lift_lab_active_template';
+
     function filterExercisesByTemplate() {
       triggerHaptic();
-      const tplId = document.getElementById('active-template-select').value;
+      const templateSelect = document.getElementById('active-template-select');
+      const tplId = templateSelect ? templateSelect.value : 'ALL';
       const select = document.getElementById('exercise-select');
       if (!select) return;
+      if (templateSelect) localStorage.setItem(ACTIVE_TEMPLATE_KEY, tplId);
+      const previousExercise = select.value || localStorage.getItem(ACTIVE_EXERCISE_KEY) || '';
 
       let listToRender = exercises;
       if (tplId !== 'ALL') {
@@ -1435,27 +1481,31 @@
         opt.textContent = ex;
         select.appendChild(opt);
       });
-      if (selectedExercise && listToRender.includes(selectedExercise)) {
-        select.value = selectedExercise;
-      }
-      onExerciseChange(false);
+      // При возврате из фона сохраняем упражнение, если оно входит в выбранный шаблон.
+      const exerciseToRestore = listToRender.includes(previousExercise)
+        ? previousExercise
+        : (listToRender[0] || '');
+      if (exerciseToRestore) select.value = exerciseToRestore;
+      if (exerciseToRestore) localStorage.setItem(ACTIVE_EXERCISE_KEY, exerciseToRestore);
+      onExerciseChange();
     }
 
     function renderExerciseSelects() {
       renderTemplateSelect();
+      const templateSelect = document.getElementById('active-template-select');
+      const savedTemplate = localStorage.getItem(ACTIVE_TEMPLATE_KEY);
+      if (templateSelect && savedTemplate && [...templateSelect.options].some(option => option.value === savedTemplate)) {
+        templateSelect.value = savedTemplate;
+      }
       filterExercisesByTemplate();
       renderManageList();
     }
 
-    function onExerciseChange(userTriggered = true) {
+    function onExerciseChange() {
       const select = document.getElementById('exercise-select');
       if (!select) return;
-      
-      if (userTriggered && select.value) {
-        selectedExercise = select.value;
-      }
-      
       const selected = select.value;
+      if (selected) localStorage.setItem(ACTIVE_EXERCISE_KEY, selected);
       const lastLogs = workoutLogs.filter(log => log.exercise === selected && log.setType !== 'WARMUP');
       const infoBox = document.getElementById('last-workout-info');
       
@@ -1604,7 +1654,6 @@
           row.innerHTML = `
             <span>${badgeHtml}Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${!isWarmup ? `<span style="font-size:0.7rem; color:var(--text-muted);">(1RM: ${oneRM}кг)</span>` : ''} ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
             <div style="display:flex; gap:4px; align-items:center;">
-              <button class="btn-step" onclick="editTodaySet(${set.id})" title="Редактировать подход" style="padding:2px 6px;">✏️</button>
               <button class="btn-step" onclick="duplicateSet(${set.weight}, ${set.reps}, '${set.exercise}', '${set.setType || 'WORK'}')" title="Быстрый повтор" style="padding:2px 6px;">⧉</button>
               <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
             </div>
@@ -1620,33 +1669,6 @@
       exportBtn.innerHTML = '🍎 Экспорт в Apple Health (Shortcut)';
       exportBtn.onclick = exportTodayToAppleHealth;
       container.appendChild(exportBtn);
-    }
-
-    async function editTodaySet(id) {
-      triggerHaptic();
-      const set = workoutLogs.find(l => l.id === id);
-      if (!set) return;
-
-      const newW = prompt("Редактирование подхода
-Введите новый вес (кг):", set.weight);
-      if (newW === null) return;
-      const newR = prompt("Введите новое количество повторений:", set.reps);
-      if (newR === null) return;
-
-      const w = parseFloat(newW);
-      const r = Number(newR);
-
-      if (!validateSetValues(w, r)) {
-        const message = 'Проверьте значения: вес от 0 до 2000 кг, повторения — целое число от 1 до 1000.';
-        if (tg?.showAlert) tg.showAlert(message); else alert(message);
-        return;
-      }
-
-      set.weight = w;
-      set.reps = r;
-      recalculatePersonalRecords(set.exercise);
-      await saveData();
-      renderTodaySets();
     }
 
     async function duplicateSet(weight, reps, exercise, setType = 'WORK') {
@@ -1701,13 +1723,10 @@
       });
       lines.push(`📊 Рабочий тоннаж: ${totalTonnage} кг`);
 
-      const textToCopy = lines.join('
-');
+      const textToCopy = lines.join('\n');
 
       navigator.clipboard.writeText(textToCopy).then(() => {
-        const msg = 'Данные тренировки скопированы в буфер обмена!
-
-Создайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
+        const msg = 'Данные тренировки скопированы в буфер обмена!\n\nСоздайте Быструю команду (Shortcut) в iOS с действием "Получить буфер обмена" и добавлением тренировки в Apple Health.';
         if (tg?.showAlert) tg.showAlert(msg);
         else alert(msg);
       }).catch(err => {
@@ -1849,7 +1868,7 @@
         <div class="row" style="margin-bottom:4px;">
           <div>
             <label style="font-size:0.65rem;">Вес (кг)</label>
-            <input type="number" id="cal-add-weight" placeholder="0" step="0.5" style="font-size:0.8rem; margin-bottom:4px;" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+            <input type="number" id="cal-add-weight" placeholder="0" step="0.5" style="font-size:0.8rem; margin-bottom:4px;">
             <div class="quick-adjust">
               <button class="btn-step" onclick="adjustValue('cal-add-weight', -2.5)">-2.5</button>
               <button class="btn-step" onclick="adjustValue('cal-add-weight', 2.5)">+2.5</button>
@@ -1857,7 +1876,7 @@
           </div>
           <div>
             <label style="font-size:0.65rem;">Повторения</label>
-            <input type="number" id="cal-add-reps" placeholder="0" style="font-size:0.8rem; margin-bottom:4px;" enterkeyhint="done" onkeyup="if(event.key==='Enter') this.blur();">
+            <input type="number" id="cal-add-reps" placeholder="0" style="font-size:0.8rem; margin-bottom:4px;">
             <div class="quick-adjust">
               <button class="btn-step" onclick="adjustValue('cal-add-reps', -1)">-1</button>
               <button class="btn-step" onclick="adjustValue('cal-add-reps', 1)">+1</button>
@@ -1984,17 +2003,16 @@
       initOrUpdateCalendar();
     }
 
-    function renderTemplateCheckboxes(selectedList = []) {
+    function renderTemplateCheckboxes() {
       const container = document.getElementById('template-checkboxes');
       if (!container) return;
       container.innerHTML = '';
       exercises.forEach((ex, idx) => {
-        const isChecked = selectedList.includes(ex);
         const label = document.createElement('label');
         label.className = 'checkbox-item';
         label.innerHTML = `
           <span style="font-size: 0.8rem; color: var(--text-main);">${ex}</span>
-          <input type="checkbox" id="tpl_ex_${idx}" value="${ex}" ${isChecked ? 'checked' : ''}>
+          <input type="checkbox" id="tpl_ex_${idx}" value="${ex}">
         `;
         container.appendChild(label);
       });
@@ -2021,64 +2039,18 @@
         return;
       }
 
-      if (editingTemplateId) {
-        const tplIndex = templates.findIndex(t => t.id === editingTemplateId);
-        if (tplIndex !== -1) {
-          templates[tplIndex].name = name;
-          templates[tplIndex].exercises = selected;
-        }
-        editingTemplateId = null;
-      } else {
-        const newTpl = {
-          id: `tpl_${Date.now()}`,
-          name,
-          exercises: selected
-        };
-        templates.push(newTpl);
-      }
+      const newTpl = {
+        id: `tpl_${Date.now()}`,
+        name,
+        exercises: selected
+      };
 
+      templates.push(newTpl);
       await saveData();
-      cancelEditTemplate();
       renderTemplatesList();
       renderTemplateSelect();
+      nameInput.value = '';
       triggerHaptic();
-    }
-
-    function startEditTemplate(id) {
-      triggerHaptic();
-      const tpl = templates.find(t => t.id === id);
-      if (!tpl) return;
-
-      editingTemplateId = id;
-      const titleEl = document.getElementById('template-editor-title');
-      const nameInput = document.getElementById('new-template-name');
-      const btnSave = document.getElementById('btn-save-template');
-      const btnCancel = document.getElementById('btn-cancel-template');
-
-      if (titleEl) titleEl.textContent = `Редактирование шаблона «${tpl.name}»`;
-      if (nameInput) nameInput.value = tpl.name;
-      if (btnSave) btnSave.textContent = 'Обновить шаблон';
-      if (btnCancel) btnCancel.style.display = 'block';
-
-      renderTemplateCheckboxes(tpl.exercises);
-
-      const editorCard = document.getElementById('template-editor-card');
-      if (editorCard) editorCard.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function cancelEditTemplate() {
-      editingTemplateId = null;
-      const titleEl = document.getElementById('template-editor-title');
-      const nameInput = document.getElementById('new-template-name');
-      const btnSave = document.getElementById('btn-save-template');
-      const btnCancel = document.getElementById('btn-cancel-template');
-
-      if (titleEl) titleEl.textContent = 'Создать шаблон тренировки';
-      if (nameInput) nameInput.value = '';
-      if (btnSave) btnSave.textContent = 'Сохранить шаблон';
-      if (btnCancel) btnCancel.style.display = 'none';
-
-      renderTemplateCheckboxes([]);
     }
 
     function renderTemplatesList() {
@@ -2097,10 +2069,7 @@
         card.innerHTML = `
           <div class="template-card-header">
             <span class="template-title">${tpl.name}</span>
-            <div style="display:flex; gap:4px;">
-              <button class="btn-step" onclick="startEditTemplate('${tpl.id}')" title="Редактировать шаблон" style="padding:2px 8px; font-size:0.75rem;">✏️ Изменить</button>
-              <button class="btn-close" onclick="removeTemplate('${tpl.id}')" title="Удалить шаблон">&times;</button>
-            </div>
+            <button class="btn-close" onclick="removeTemplate('${tpl.id}')" title="Удалить шаблон">&times;</button>
           </div>
           <div class="template-exercises-list">${tpl.exercises.join(' • ')}</div>
           <button class="btn-primary" onclick="startWorkoutFromTemplate('${tpl.id}')" style="padding: 6px; font-size: 0.75rem;">Запустить тренировку</button>
@@ -2316,6 +2285,7 @@
       });
     }
 
+    // Рендер сетки личных рекордов (v1.0.36)
     function renderRecordsGrid() {
       const container = document.getElementById('records-grid-list');
       if (!container) return;
@@ -2456,6 +2426,7 @@
       });
     }
 
+    // Рендер распределения по группам мышц (Исправлен расчет нуля v1.0.36)
     function renderMuscleGroupsDistribution() {
       const container = document.getElementById('muscle-groups-distribution');
       if (!container) return;
