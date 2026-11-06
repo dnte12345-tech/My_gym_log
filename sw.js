@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.36';
+const CACHE_NAME = 'lift-lab-cache-v1.0.35';
 const CORE_ASSETS = ['./', './index.html'];
 const OPTIONAL_ASSETS = [
   'https://telegram.org/js/telegram-web-app.js',
@@ -18,9 +18,8 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
-    const names = me => name.startsWith('lift-lab-cache-') && name !== CACHE_NAME;
-    const namesList = await caches.keys();
-    await Promise.all(namesList.filter(names).map(name => caches.delete(name)));
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name.startsWith('lift-lab-cache-') && name !== CACHE_NAME).map(name => caches.delete(name)));
     await self.skipWaiting();
   })());
 });
