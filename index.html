@@ -496,6 +496,22 @@
       color: var(--text-muted);
       margin-top: 8px;
     }
+
+    /* При открытой экранной клавиатуре разрешаем прокрутку формы и поднимаем поля ввода. */
+    body.keyboard-open .container {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-bottom: 24px;
+    }
+    body.keyboard-open #tab-workout {
+      height: auto;
+      min-height: 100%;
+      overflow: visible;
+    }
+    body.keyboard-open #tab-workout > .card {
+      scroll-margin-top: 12px;
+    }
+    #input-weight, #input-reps { scroll-margin-top: 24px; scroll-margin-bottom: 180px; }
   </style>
 </head>
 <body data-theme="midnight-neon">
@@ -555,7 +571,7 @@
         Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.35</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.36</div>
     </div>
   </div>
 
@@ -622,7 +638,7 @@
         <div class="row">
           <div>
             <label>Вес (кг)</label>
-            <input type="number" id="input-weight" placeholder="0" step="0.5">
+            <input type="number" id="input-weight" placeholder="0" step="0.5" enterkeyhint="next" inputmode="decimal">
             <div class="quick-adjust">
               <button class="btn-step" onclick="adjustValue('input-weight', -2.5)">-2.5</button>
               <button class="btn-step" onclick="adjustValue('input-weight', 2.5)">+2.5</button>
@@ -630,7 +646,7 @@
           </div>
           <div>
             <label>Повторения</label>
-            <input type="number" id="input-reps" placeholder="0">
+            <input type="number" id="input-reps" placeholder="0" enterkeyhint="done" inputmode="numeric">
             <div class="quick-adjust">
               <button class="btn-step" onclick="adjustValue('input-reps', -1)">-1</button>
               <button class="btn-step" onclick="adjustValue('input-reps', 1)">+1</button>
@@ -663,7 +679,7 @@
       </div>
     </section>
 
-    <!-- Вкладка 3: Прогресс (Реорганизация v1.0.35) -->
+    <!-- Вкладка 3: Прогресс (Реорганизация v1.0.36) -->
     <section id="tab-progress" class="tab-content">
       
       <!-- Переключатель подвкладок внутри "Прогресса" -->
@@ -678,7 +694,7 @@
       <div id="progress-subtab-analytics" style="display: flex; flex-direction: column; gap: 8px; height: 100%; overflow: hidden;">
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <h2 style="margin-bottom:0;">Аналитика (Garmin Style)</h2>
+            <h2 style="margin-bottom:0;">Аналитика</h2>
             <div style="display:flex; gap:4px; width: 120px;">
               <button id="filter-week" class="btn-primary" onclick="setFilter('week')" style="padding: 4px; font-size: 0.7rem;">Неделя</button>
               <button id="filter-month" class="btn-step" onclick="setFilter('month')" style="padding: 4px; font-size: 0.7rem;">Месяц</button>
@@ -741,7 +757,7 @@
         </div>
       </div>
 
-      <!-- Подвкладка 2: Личные рекорды (Вынесено отдельно v1.0.35) -->
+      <!-- Подвкладка 2: Личные рекорды (Вынесено отдельно v1.0.36) -->
       <div id="progress-subtab-records" class="card card-scrollable" style="display: none; flex-direction: column; gap: 8px;">
         <h2>🏆 Личные рекорды по упражнениям</h2>
         <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px;">Максимальный вес и расчётный 1RM из рабочих подходов:</p>
@@ -951,7 +967,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.35";
+    const APP_VERSION = "v1.0.36";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1273,6 +1289,49 @@
       document.addEventListener(evt, updateLastActivity, { passive: true });
     });
 
+    // Корректная работа формы с клавиатурой iOS/Telegram WebView.
+    (function setupWorkoutKeyboard() {
+      const weightInput = document.getElementById('input-weight');
+      const repsInput = document.getElementById('input-reps');
+      const formCard = document.querySelector('#tab-workout .card:nth-of-type(3)');
+      const viewport = window.visualViewport;
+      const updateKeyboardLayout = () => {
+        const keyboardVisible = Boolean(viewport && window.screen.height - viewport.height > 140);
+        document.body.classList.toggle('keyboard-open', keyboardVisible && document.activeElement?.matches('input, textarea, select'));
+      };
+      if (viewport) {
+        viewport.addEventListener('resize', updateKeyboardLayout);
+        viewport.addEventListener('scroll', updateKeyboardLayout);
+      }
+      [weightInput, repsInput].forEach(input => {
+        if (!input) return;
+        input.addEventListener('focus', () => {
+          document.body.classList.add('keyboard-open');
+          updateKeyboardLayout();
+          requestAnimationFrame(() => {
+            if (formCard) formCard.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          });
+        });
+        input.addEventListener('blur', () => {
+          window.setTimeout(() => {
+            if (!document.activeElement?.matches('input, textarea, select')) {
+              document.body.classList.remove('keyboard-open');
+            }
+          }, 180);
+        });
+        input.addEventListener('keydown', event => {
+          if (event.key !== 'Enter') return;
+          event.preventDefault();
+          if (input === weightInput && repsInput) {
+            repsInput.focus();
+          } else {
+            input.blur(); // Enter на поле повторений работает как Done и закрывает клавиатуру.
+          }
+        });
+      });
+    })();
+
     function triggerHaptic() {
       if (tg?.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
@@ -1397,11 +1456,17 @@
       });
     }
 
+    const ACTIVE_EXERCISE_KEY = 'lift_lab_active_exercise';
+    const ACTIVE_TEMPLATE_KEY = 'lift_lab_active_template';
+
     function filterExercisesByTemplate() {
       triggerHaptic();
-      const tplId = document.getElementById('active-template-select').value;
+      const templateSelect = document.getElementById('active-template-select');
+      const tplId = templateSelect ? templateSelect.value : 'ALL';
       const select = document.getElementById('exercise-select');
       if (!select) return;
+      if (templateSelect) localStorage.setItem(ACTIVE_TEMPLATE_KEY, tplId);
+      const previousExercise = select.value || localStorage.getItem(ACTIVE_EXERCISE_KEY) || '';
 
       let listToRender = exercises;
       if (tplId !== 'ALL') {
@@ -1416,11 +1481,22 @@
         opt.textContent = ex;
         select.appendChild(opt);
       });
+      // При возврате из фона сохраняем упражнение, если оно входит в выбранный шаблон.
+      const exerciseToRestore = listToRender.includes(previousExercise)
+        ? previousExercise
+        : (listToRender[0] || '');
+      if (exerciseToRestore) select.value = exerciseToRestore;
+      if (exerciseToRestore) localStorage.setItem(ACTIVE_EXERCISE_KEY, exerciseToRestore);
       onExerciseChange();
     }
 
     function renderExerciseSelects() {
       renderTemplateSelect();
+      const templateSelect = document.getElementById('active-template-select');
+      const savedTemplate = localStorage.getItem(ACTIVE_TEMPLATE_KEY);
+      if (templateSelect && savedTemplate && [...templateSelect.options].some(option => option.value === savedTemplate)) {
+        templateSelect.value = savedTemplate;
+      }
       filterExercisesByTemplate();
       renderManageList();
     }
@@ -1429,6 +1505,7 @@
       const select = document.getElementById('exercise-select');
       if (!select) return;
       const selected = select.value;
+      if (selected) localStorage.setItem(ACTIVE_EXERCISE_KEY, selected);
       const lastLogs = workoutLogs.filter(log => log.exercise === selected && log.setType !== 'WARMUP');
       const infoBox = document.getElementById('last-workout-info');
       
@@ -2208,7 +2285,7 @@
       });
     }
 
-    // Рендер сетки личных рекордов (v1.0.35)
+    // Рендер сетки личных рекордов (v1.0.36)
     function renderRecordsGrid() {
       const container = document.getElementById('records-grid-list');
       if (!container) return;
@@ -2349,7 +2426,7 @@
       });
     }
 
-    // Рендер распределения по группам мышц (Исправлен расчет нуля v1.0.35)
+    // Рендер распределения по группам мышц (Исправлен расчет нуля v1.0.36)
     function renderMuscleGroupsDistribution() {
       const container = document.getElementById('muscle-groups-distribution');
       if (!container) return;
