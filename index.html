@@ -775,7 +775,10 @@
         <input type="text" id="new-template-name" placeholder="Название шаблона (напр. Спина / Бицепс)">
         <label>Выберите упражнения в шаблон</label>
         <div id="template-checkboxes" style="max-height: 120px; overflow-y: auto; margin-bottom: 8px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px;"></div>
-        <button class="btn-success" onclick="addNewTemplate()">Сохранить шаблон</button>
+        <div class="row" style="gap:8px;">
+          <button id="template-save-btn" class="btn-success" onclick="addNewTemplate()">Сохранить шаблон</button>
+          <button id="template-cancel-btn" class="btn-step" onclick="cancelTemplateEdit()" style="display:none;">Отмена</button>
+        </div>
       </div>
 
       <div class="card card-scrollable">
@@ -796,28 +799,29 @@
       <div id="body-subtab-calc" class="card card-scrollable" style="display: flex; flex-direction: column; gap: 8px;">
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">⚙️ Параметры для расчета расхода ккал</h2>
-          <div class="row" style="margin-bottom:4px;">
-            <div>
-              <label>Пол</label>
-              <select id="user-gender" onchange="recalculateTDEE()">
-                <option value="male" selected>Мужской</option>
-                <option value="female">Женский</option>
-              </select>
+          <details class="profile-basics" style="margin-bottom:8px; background:var(--bg-color); border:1px solid var(--border-color); border-radius:8px; padding:9px;">
+            <summary style="font-weight:700; color:var(--text-main); cursor:pointer;">👤 Личные данные — пол, возраст, рост</summary>
+            <div class="row" style="margin-top:10px; margin-bottom:4px;">
+              <div>
+                <label>Пол</label>
+                <select id="user-gender" onchange="recalculateTDEE()">
+                  <option value="male" selected>Мужской</option>
+                  <option value="female">Женский</option>
+                </select>
+              </div>
+              <div>
+                <label>Возраст (лет)</label>
+                <input type="number" id="user-age" value="31" placeholder="31" oninput="recalculateTDEE()">
+              </div>
             </div>
-            <div>
-              <label>Возраст (лет)</label>
-              <input type="number" id="user-age" value="31" placeholder="31" oninput="recalculateTDEE()">
-            </div>
-          </div>
-          <div class="row" style="margin-bottom:4px;">
-            <div>
+            <div style="margin-bottom:4px;">
               <label>Рост (см)</label>
               <input type="number" id="user-height" value="179" placeholder="179" oninput="recalculateTDEE()">
             </div>
-            <div>
-              <label>Текущий вес (кг)</label>
-              <input type="number" id="user-weight" value="71.7" placeholder="71.7" step="0.1" oninput="recalculateTDEE()">
-            </div>
+          </details>
+          <div style="margin-bottom:4px;">
+            <label>Текущий вес (кг)</label>
+            <input type="number" id="user-weight" value="71.7" placeholder="71.7" step="0.1" oninput="recalculateTDEE()">
           </div>
           <label>Силовые тренировки / Активность</label>
           <select id="user-activity" onchange="recalculateTDEE()">
@@ -967,7 +971,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.36";
+    const APP_VERSION = "v1.0.37";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1654,6 +1658,7 @@
           row.innerHTML = `
             <span>${badgeHtml}Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${!isWarmup ? `<span style="font-size:0.7rem; color:var(--text-muted);">(1RM: ${oneRM}кг)</span>` : ''} ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
             <div style="display:flex; gap:4px; align-items:center;">
+              <button class="btn-step" onclick="editTodaySet(${set.id})" title="Редактировать подход" style="padding:2px 7px;">✏️</button>
               <button class="btn-step" onclick="duplicateSet(${set.weight}, ${set.reps}, '${set.exercise}', '${set.setType || 'WORK'}')" title="Быстрый повтор" style="padding:2px 6px;">⧉</button>
               <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
             </div>
@@ -1733,6 +1738,30 @@
         console.error('Ошибка копирования:', err);
         prompt('Скопируйте текст тренировки для импорта:', textToCopy);
       });
+    }
+
+    async function editTodaySet(id) {
+      const set = workoutLogs.find(item => item.id === id && item.dateStr === dateKey(new Date()));
+      if (!set) return;
+      const weightText = prompt('Изменить вес (кг):', String(set.weight));
+      if (weightText === null) return;
+      const repsText = prompt('Изменить количество повторений:', String(set.reps));
+      if (repsText === null) return;
+      const weight = Number(weightText.replace(',', '.'));
+      const reps = Number(repsText);
+      if (!validateSetValues(weight, reps)) {
+        const message = 'Проверьте значения: вес от 0 до 2000 кг, повторения — целое число от 1 до 1000.';
+        if (tg?.showAlert) tg.showAlert(message); else alert(message);
+        return;
+      }
+      const oldExercise = set.exercise;
+      set.weight = weight;
+      set.reps = reps;
+      set.isPR = false;
+      recalculatePersonalRecords(oldExercise);
+      await saveData();
+      renderTodaySets();
+      triggerHaptic();
     }
 
     async function deleteSet(id) {
@@ -2018,6 +2047,38 @@
       });
     }
 
+    let editingTemplateId = null;
+
+    function editTemplate(id) {
+      const tpl = templates.find(item => item.id === id);
+      if (!tpl) return;
+      editingTemplateId = id;
+      const nameInput = document.getElementById('new-template-name');
+      if (nameInput) nameInput.value = tpl.name;
+      renderTemplateCheckboxes();
+      exercises.forEach((ex, idx) => {
+        const checkbox = document.getElementById(`tpl_ex_${idx}`);
+        if (checkbox) checkbox.checked = tpl.exercises.includes(ex);
+      });
+      const saveBtn = document.getElementById('template-save-btn');
+      const cancelBtn = document.getElementById('template-cancel-btn');
+      if (saveBtn) saveBtn.textContent = 'Сохранить изменения';
+      if (cancelBtn) cancelBtn.style.display = 'block';
+      nameInput?.scrollIntoView({behavior:'smooth', block:'center'});
+      nameInput?.focus({preventScroll:true});
+    }
+
+    function cancelTemplateEdit() {
+      editingTemplateId = null;
+      const nameInput = document.getElementById('new-template-name');
+      if (nameInput) nameInput.value = '';
+      renderTemplateCheckboxes();
+      const saveBtn = document.getElementById('template-save-btn');
+      const cancelBtn = document.getElementById('template-cancel-btn');
+      if (saveBtn) saveBtn.textContent = 'Сохранить шаблон';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+    }
+
     async function addNewTemplate() {
       const nameInput = document.getElementById('new-template-name');
       const name = nameInput ? nameInput.value.trim() : '';
@@ -2039,17 +2100,19 @@
         return;
       }
 
-      const newTpl = {
-        id: `tpl_${Date.now()}`,
-        name,
-        exercises: selected
-      };
-
-      templates.push(newTpl);
+      if (editingTemplateId) {
+        const existing = templates.find(t => t.id === editingTemplateId);
+        if (existing) {
+          existing.name = name;
+          existing.exercises = selected;
+        }
+      } else {
+        templates.push({ id: `tpl_${Date.now()}`, name, exercises: selected });
+      }
       await saveData();
       renderTemplatesList();
       renderTemplateSelect();
-      nameInput.value = '';
+      cancelTemplateEdit();
       triggerHaptic();
     }
 
@@ -2072,13 +2135,17 @@
             <button class="btn-close" onclick="removeTemplate('${tpl.id}')" title="Удалить шаблон">&times;</button>
           </div>
           <div class="template-exercises-list">${tpl.exercises.join(' • ')}</div>
-          <button class="btn-primary" onclick="startWorkoutFromTemplate('${tpl.id}')" style="padding: 6px; font-size: 0.75rem;">Запустить тренировку</button>
+          <div class="row" style="gap:6px; margin-top:6px;">
+            <button class="btn-step" onclick="editTemplate('${tpl.id}')" style="padding:6px;">✏️ Редактировать</button>
+            <button class="btn-primary" onclick="startWorkoutFromTemplate('${tpl.id}')" style="padding:6px; font-size:0.75rem;">Запустить тренировку</button>
+          </div>
         `;
         container.appendChild(card);
       });
     }
 
     async function removeTemplate(id) {
+      if (editingTemplateId === id) cancelTemplateEdit();
       templates = templates.filter(t => t.id !== id);
       await saveData();
       renderTemplatesList();
