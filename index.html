@@ -971,7 +971,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.38";
+    const APP_VERSION = "v1.0.39";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1382,7 +1382,7 @@
       }
     });
     window.addEventListener('pagehide', () => {
-      if (dataReady && !dataLoadFailed) saveData();
+      if (dataReady && !dataLoadFailed) { persistWorkoutDraft(); saveData(); }
     });
     ['click', 'touchstart', 'keydown'].forEach(evt => {
       document.addEventListener(evt, updateLastActivity, { passive: true });
@@ -1618,6 +1618,7 @@
         document.getElementById('input-weight').value = '';
         document.getElementById('input-reps').value = '';
       }
+      if (typeof persistWorkoutDraft === 'function') persistWorkoutDraft();
     }
 
     function adjustValue(inputId, step) {
@@ -1669,6 +1670,65 @@
       return Number.isFinite(weight) && weight >= 0 && weight <= 2000 && Number.isInteger(reps) && reps >= 1 && reps <= 1000;
     }
 
+    const ACTIVE_WORKOUT_DRAFT_KEY = `lift_lab_active_workout_draft${userId}`;
+    let workoutDraftSaveTimer = null;
+    let editingSetId = null;
+    function persistWorkoutDraft() {
+      const exerciseSelect = document.getElementById('exercise-select');
+      const weightInput = document.getElementById('input-weight');
+      const repsInput = document.getElementById('input-reps');
+      const templateSelect = document.getElementById('active-template-select');
+      if (!exerciseSelect || !weightInput || !repsInput) return;
+      const draft = {version:1, updatedAt:new Date().toISOString(), exercise:exerciseSelect.value||'', weight:weightInput.value, reps:repsInput.value, setType:currentSetType||'WORK', templateId:templateSelect?.value||'ALL', isLiveSession:!!isLiveSession};
+      try { localStorage.setItem(ACTIVE_WORKOUT_DRAFT_KEY, JSON.stringify(draft)); } catch(e) { console.warn('Черновик не сохранён',e); }
+    }
+    function scheduleWorkoutDraftSave() { clearTimeout(workoutDraftSaveTimer); workoutDraftSaveTimer=setTimeout(persistWorkoutDraft,120); }
+    function restoreWorkoutDraft() {
+      try {
+        const raw=localStorage.getItem(ACTIVE_WORKOUT_DRAFT_KEY); if(!raw) return false;
+        const d=JSON.parse(raw); if(!d||d.version!==1) return false;
+        const ts=document.getElementById('active-template-select');
+        if(ts&&d.templateId&&[...ts.options].some(o=>o.value===d.templateId)){ts.value=d.templateId;filterExercisesByTemplate();}
+        const es=document.getElementById('exercise-select');
+        if(es&&d.exercise&&[...es.options].some(o=>o.value===d.exercise)){es.value=d.exercise;localStorage.setItem(ACTIVE_EXERCISE_KEY,d.exercise);}
+        const wi=document.getElementById('input-weight'), ri=document.getElementById('input-reps');
+        if(wi&&d.weight!==undefined)wi.value=d.weight; if(ri&&d.reps!==undefined)ri.value=d.reps;
+        currentSetType=['WORK','WARMUP','DROP'].includes(d.setType)?d.setType:'WORK';
+        if(d.isLiveSession)isLiveSession=true;
+        return true;
+      } catch(e) { console.warn('Черновик повреждён, оставлен для диагностики.',e); return false; }
+    }
+    function makeSetId(){return `set_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;}
+
+    function openSetEditor(id,dateStr) {
+      const set=workoutLogs.find(x=>String(x.id)===String(id)&&(!dateStr||x.dateStr===dateStr)); if(!set)return;
+      editingSetId=set.id;
+      let modal=document.getElementById('set-editor-modal');
+      if(!modal){
+        modal=document.createElement('div'); modal.id='set-editor-modal';
+        modal.style.cssText='position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;padding:12px;';
+        modal.innerHTML=`<div style="width:100%;max-width:520px;max-height:88dvh;overflow:auto;background:var(--card-bg);color:var(--text-main);border:1px solid var(--border-color);border-radius:18px;padding:16px 16px calc(18px + env(safe-area-inset-bottom));"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>Редактирование подхода</strong><button class="btn-close" onclick="closeSetEditor()">×</button></div><label>Упражнение</label><select id="edit-set-exercise"></select><div class="row" style="gap:8px;"><div style="flex:1"><label>Вес, кг</label><input id="edit-set-weight" type="number" min="0" max="2000" step="0.5" inputmode="decimal"></div><div style="flex:1"><label>Повторения</label><input id="edit-set-reps" type="number" min="1" max="1000" step="1" inputmode="numeric"></div></div><label>Тип подхода</label><select id="edit-set-type"><option value="WORK">Рабочий</option><option value="WARMUP">Разминочный</option><option value="DROP">Дроп-сет</option></select><label>Дата</label><input id="edit-set-date" type="date"><label>Заметка</label><textarea id="edit-set-note" rows="2" placeholder="Необязательно"></textarea><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn-step" style="flex:1" onclick="closeSetEditor()">Отмена</button><button class="btn-primary" style="flex:2" onclick="saveSetEditor()">Сохранить изменения</button></div></div>`;
+        document.body.appendChild(modal); modal.addEventListener('click',e=>{if(e.target===modal)closeSetEditor();});
+      }
+      const ex=document.getElementById('edit-set-exercise'); ex.innerHTML='';
+      [...new Set([...exercises,set.exercise])].forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;ex.appendChild(o);}); ex.value=set.exercise;
+      document.getElementById('edit-set-weight').value=set.weight; document.getElementById('edit-set-reps').value=set.reps;
+      document.getElementById('edit-set-type').value=set.setType||'WORK'; document.getElementById('edit-set-date').value=set.dateStr;
+      document.getElementById('edit-set-note').value=set.note||''; modal.style.display='flex'; document.body.style.overflow='hidden';
+    }
+    function closeSetEditor(){const m=document.getElementById('set-editor-modal');if(m)m.style.display='none';document.body.style.overflow='';editingSetId=null;}
+    async function saveSetEditor(){
+      const set=workoutLogs.find(x=>String(x.id)===String(editingSetId));if(!set)return closeSetEditor();
+      const weight=Number(document.getElementById('edit-set-weight').value.replace(',','.')), reps=Number(document.getElementById('edit-set-reps').value);
+      const exercise=document.getElementById('edit-set-exercise').value, type=document.getElementById('edit-set-type').value, date=document.getElementById('edit-set-date').value;
+      if(!exercise||!validateSetValues(weight,reps)||!isValidDateKey(date)||!['WORK','WARMUP','DROP'].includes(type)){const msg='Проверьте упражнение, дату, вес и количество повторений.';if(tg?.showAlert)tg.showAlert(msg);else alert(msg);return;}
+      const oldExercise=set.exercise, oldDate=set.dateStr, old={...set};
+      Object.assign(set,{exercise,weight,reps,setType:type,dateStr:date,timestamp:new Date(`${date}T12:00:00`).toISOString(),note:document.getElementById('edit-set-note').value.trim()});
+      recalculatePersonalRecords(oldExercise);if(exercise!==oldExercise)recalculatePersonalRecords(exercise);
+      if(!await saveData()){Object.assign(set,old);recalculatePersonalRecords(oldExercise);if(tg?.showAlert)tg.showAlert('Не удалось сохранить изменения.');return;}
+      closeSetEditor();renderTodaySets();initOrUpdateCalendar();if(oldDate!==date)showDayDetails(oldDate);triggerHaptic();
+    }
+
     async function addSet() {
       const exerciseSelect = document.getElementById('exercise-select');
       if (!exerciseSelect) return;
@@ -1688,7 +1748,7 @@
       const isPR = isPersonalRecord(exercise, weight, reps, setType);
 
       const newLog = {
-        id: Date.now(),
+        id: makeSetId(),
         dateStr: todayStr,
         timestamp: now.toISOString(),
         exercise,
@@ -1700,7 +1760,8 @@
 
       workoutLogs.push(newLog);
       recalculatePersonalRecords(exercise);
-      await saveData();
+      if (!await saveData()) { workoutLogs = workoutLogs.filter(log => log.id !== newLog.id); recalculatePersonalRecords(exercise); return; }
+      persistWorkoutDraft();
       renderTodaySets();
       triggerHaptic();
 
@@ -1753,7 +1814,7 @@
           row.innerHTML = `
             <span>${badgeHtml}Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${!isWarmup ? `<span style="font-size:0.7rem; color:var(--text-muted);">(1RM: ${oneRM}кг)</span>` : ''} ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
             <div style="display:flex; gap:4px; align-items:center;">
-              <button class="btn-step" onclick="editTodaySet(${set.id})" title="Редактировать подход" style="padding:2px 7px;">✏️</button>
+              <button class="btn-step" onclick="openSetEditor('${String(set.id)}', '${set.dateStr}')" title="Редактировать подход" style="padding:2px 7px;">✏️</button>
               <button class="btn-step" onclick="duplicateSet(${set.weight}, ${set.reps}, '${set.exercise}', '${set.setType || 'WORK'}')" title="Быстрый повтор" style="padding:2px 6px;">⧉</button>
               <button class="btn-close" onclick="deleteSet(${set.id})" title="Удалить подход">&times;</button>
             </div>
@@ -1778,7 +1839,7 @@
       const isPR = isPersonalRecord(exercise, weight, reps, setType);
 
       const newLog = {
-        id: Date.now(),
+        id: makeSetId(),
         dateStr: todayStr,
         timestamp: now.toISOString(),
         exercise,
@@ -1835,29 +1896,7 @@
       });
     }
 
-    async function editTodaySet(id) {
-      const set = workoutLogs.find(item => item.id === id && item.dateStr === dateKey(new Date()));
-      if (!set) return;
-      const weightText = prompt('Изменить вес (кг):', String(set.weight));
-      if (weightText === null) return;
-      const repsText = prompt('Изменить количество повторений:', String(set.reps));
-      if (repsText === null) return;
-      const weight = Number(weightText.replace(',', '.'));
-      const reps = Number(repsText);
-      if (!validateSetValues(weight, reps)) {
-        const message = 'Проверьте значения: вес от 0 до 2000 кг, повторения — целое число от 1 до 1000.';
-        if (tg?.showAlert) tg.showAlert(message); else alert(message);
-        return;
-      }
-      const oldExercise = set.exercise;
-      set.weight = weight;
-      set.reps = reps;
-      set.isPR = false;
-      recalculatePersonalRecords(oldExercise);
-      await saveData();
-      renderTodaySets();
-      triggerHaptic();
-    }
+    async function editTodaySet(id) { openSetEditor(id, dateKey(new Date())); }
 
     async function deleteSet(id) {
       triggerHaptic();
@@ -1955,7 +1994,7 @@
             row.innerHTML = `
               <span>${badgeHtml}Подход ${index + 1}: <strong style="color: var(--accent);">${set.weight} кг</strong> × ${set.reps} повт. ${set.isPR ? '<span class="pr-badge">PR</span>' : ''}</span>
               <div style="display:flex; gap:4px; align-items:center;">
-                <button class="btn-step" onclick="editSetFromCalendar(${set.id}, '${dateStr}')" title="Редактировать подход" style="padding:2px 6px;">✏️</button>
+                <button class="btn-step" onclick="openSetEditor('${String(set.id)}', '${dateStr}')" title="Редактировать подход" style="padding:2px 6px;">✏️</button>
                 <button class="btn-close" onclick="deleteSetFromCalendar(${set.id}, '${dateStr}')" title="Удалить">&times;</button>
               </div>
             `;
@@ -2067,29 +2106,7 @@
       initOrUpdateCalendar();
     }
 
-    async function editSetFromCalendar(id, dateStr) {
-      triggerHaptic();
-      const set = workoutLogs.find(l => l.id === id);
-      if (!set) return;
-      const newW = prompt("Введите новый вес (кг):", set.weight);
-      if (newW === null) return;
-      const newR = prompt("Введите новое кол-во повторений:", set.reps);
-      if (newR === null) return;
-
-      const w = parseFloat(newW);
-      const r = Number(newR);
-      if (!validateSetValues(w, r)) {
-        const message = 'Проверьте значения: вес не может быть отрицательным, повторения должны быть больше нуля.';
-        if (tg?.showAlert) tg.showAlert(message); else alert(message);
-        return;
-      }
-      set.weight = w;
-      set.reps = r;
-      recalculatePersonalRecords(set.exercise);
-      await saveData();
-      showDayDetails(dateStr);
-      initOrUpdateCalendar();
-    }
+    async function editSetFromCalendar(id, dateStr) { openSetEditor(id, dateStr); }
 
     async function addSetToDate(dateStr) {
       triggerHaptic();
@@ -2110,7 +2127,7 @@
 
       const isPR = isPersonalRecord(exercise, weight, reps, 'WORK');
       const newLog = {
-        id: Date.now(),
+        id: makeSetId(),
         dateStr: dateStr,
         timestamp: new Date(`${dateStr}T12:00:00`).toISOString(),
         exercise,
@@ -2320,7 +2337,7 @@
 
       const now = new Date();
       const newRecord = {
-        id: Date.now(),
+        id: makeSetId(),
         dateStr: dateKey(now),
         weight,
         waist: isNaN(waist) ? 0 : waist,
@@ -3188,9 +3205,14 @@
       }
     }
 
+    ['input-weight','input-reps','exercise-select','active-template-select'].forEach(id => {
+      const el=document.getElementById(id); if(el){el.addEventListener('input',scheduleWorkoutDraftSave);el.addEventListener('change',scheduleWorkoutDraftSave);}
+    });
+
     try {
       checkAuth();
       loadData().then(loaded => {
+        if (loaded) restoreWorkoutDraft();
         if (!loaded) {
           const status = document.getElementById('backup-status');
           if (status) status.textContent = status.textContent || '⚠️ Данные не загружены. Не очищайте хранилище; используйте резервную копию.';
