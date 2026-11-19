@@ -1,4 +1,5 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.37';
+const CACHE_NAME = 'lift-lab-cache-v1.0.38';
+const CACHE_PREFIX = 'lift-lab-cache-';
 const CORE_ASSETS = ['./', './index.html'];
 const OPTIONAL_ASSETS = [
   'https://telegram.org/js/telegram-web-app.js',
@@ -19,8 +20,11 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(name => name.startsWith('lift-lab-cache-') && name !== CACHE_NAME).map(name => caches.delete(name)));
-    await self.skipWaiting();
+    // Удаляем только предыдущие кэши Lift Lab, не затрагивая кэши других приложений.
+    await Promise.all(names
+      .filter(name => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+      .map(name => caches.delete(name)));
+    await self.clients.claim();
   })());
 });
 
@@ -28,13 +32,14 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        const response = await fetch(request);
+        const response = await fetch(request, { cache: 'no-cache' });
         if (response && response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          cache.put('./index.html', response.clone());
+          await cache.put('./index.html', response.clone());
         }
         return response;
       } catch (_) {
@@ -43,11 +48,22 @@ self.addEventListener('fetch', event => {
     })());
     return;
   }
-  if (url.origin === self.location.origin || OPTIONAL_ASSETS.some(asset => request.url.startsWith(asset))) {
+
+  const isOptional = OPTIONAL_ASSETS.some(asset => request.url.startsWith(asset));
+  if (url.origin === self.location.origin || isOptional) {
     event.respondWith((async () => {
-      const cached = await caches.match(request);
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
       if (cached) return cached;
-      try { return await fetch(request); } catch (_) { return Response.error(); }
+      try {
+        const response = await fetch(request);
+        if (response && (response.ok || response.type === 'opaque')) {
+          await cache.put(request, response.clone());
+        }
+        return response;
+      } catch (_) {
+        return cached || Response.error();
+      }
     })());
   }
 });

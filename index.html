@@ -971,7 +971,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.37";
+    const APP_VERSION = "v1.0.38";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -998,8 +998,11 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service Worker зарегистрирован:', reg.scope))
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+          .then(reg => {
+            console.log('Service Worker зарегистрирован:', reg.scope);
+            reg.update().catch(err => console.warn('Не удалось проверить обновление Service Worker:', err));
+          })
           .catch(err => console.warn('Ошибка Service Worker:', err));
       });
     }
@@ -1204,91 +1207,183 @@
     const PRIMARY_KEY_BODY = `gym_master_body${userId}`;
     const PRIMARY_KEY_VER = `gym_app_version${userId}`;
     let dataLoadFailed = false;
+    let dataReady = false;
+    let loadInProgress = false;
+    let lastSuccessfulSaveAt = 0;
+    const MASTER_STORAGE_KEYS = [PRIMARY_KEY_EX, PRIMARY_KEY_LOGS, PRIMARY_KEY_TPL, PRIMARY_KEY_BODY];
 
     function kbdzStorageKey(dateStr) { return `gym_kbdz_${dateStr}${userId}`; }
+    function isValidDateKey(value) {
+      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const [y, m, d] = value.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+    }
+    function parseStoredJSON(raw, label, validator) {
+      if (typeof raw !== 'string' || raw.length === 0) throw new Error(`Раздел «${label}» отсутствует или пуст.`);
+      let parsed;
+      try { parsed = JSON.parse(raw.replace(/^\uFEFF/, '')); }
+      catch (_) { throw new Error(`Раздел «${label}» содержит повреждённый JSON.`); }
+      if (!validator(parsed)) throw new Error(`Раздел «${label}» имеет неожиданную структуру.`);
+      return parsed;
+    }
+    function isValidExerciseList(value) {
+      return Array.isArray(value) && value.every(item => typeof item === 'string' && item.trim().length > 0);
+    }
+    function isValidWorkoutLogs(value) {
+      return Array.isArray(value) && value.every(log =>
+        log && typeof log === 'object' && !Array.isArray(log) &&
+        typeof log.exercise === 'string' && log.exercise.trim().length > 0 &&
+        Number.isFinite(Number(log.weight)) && Number(log.weight) >= 0 && Number(log.weight) <= 2000 &&
+        Number.isInteger(Number(log.reps)) && Number(log.reps) >= 1 && Number(log.reps) <= 1000 &&
+        isValidDateKey(log.dateStr) &&
+        (log.setType === undefined || ['WORK', 'WARMUP', 'DROP'].includes(log.setType))
+      );
+    }
+    function isValidTemplates(value) {
+      return Array.isArray(value) && value.every(tpl =>
+        tpl && typeof tpl === 'object' && !Array.isArray(tpl) &&
+        (typeof tpl.id === 'string' || Number.isFinite(Number(tpl.id))) &&
+        typeof tpl.name === 'string' && tpl.name.trim().length > 0 &&
+        Array.isArray(tpl.exercises) && tpl.exercises.every(ex => typeof ex === 'string' && ex.trim().length > 0)
+      );
+    }
+    function isValidBodyLogs(value) {
+      return Array.isArray(value) && value.every(record =>
+        record && typeof record === 'object' && !Array.isArray(record) &&
+        isValidDateKey(record.dateStr) &&
+        Number.isFinite(Number(record.weight)) && Number(record.weight) > 0
+      );
+    }
     async function getKBDZForDate(dateStr) {
       const current = await localStore.getItem(kbdzStorageKey(dateStr));
-      if (current) return current;
+      if (current !== null) return current;
       if (userId) {
         const legacyKey = `gym_kbdz_${dateStr}`;
         const legacy = await localStore.getItem(legacyKey);
-        if (legacy) {
-          await localStore.setItem(kbdzStorageKey(dateStr), legacy);
+        if (legacy !== null) {
+          const parsed = parseStoredJSON(legacy, `КБЖУ ${dateStr}`, value => value && typeof value === 'object' && !Array.isArray(value));
+          await localStore.setItem(kbdzStorageKey(dateStr), JSON.stringify(parsed));
           localStorage.removeItem(legacyKey);
-          return legacy;
+          return JSON.stringify(parsed);
         }
       }
       return null;
     }
 
     async function loadData() {
-      dataLoadFailed = false;
-      let legacyMasterMigrated = false;
+      if (loadInProgress) return false;
+      loadInProgress = true;
       try {
-        let rawExercises = await localStore.getItem(PRIMARY_KEY_EX);
-        let rawLogs = await localStore.getItem(PRIMARY_KEY_LOGS);
-        let rawTemplates = await localStore.getItem(PRIMARY_KEY_TPL);
-        let rawBody = await localStore.getItem(PRIMARY_KEY_BODY);
-
+        let rawValues = await Promise.all(MASTER_STORAGE_KEYS.map(key => localStore.getItem(key)));
+        let legacyMasterMigrated = false;
         if (userId) {
-          if (!rawExercises) { const legacy = await localStore.getItem('gym_master_exercises'); if (legacy !== null) { rawExercises = legacy; legacyMasterMigrated = true; } }
-          if (!rawLogs) { const legacy = await localStore.getItem('gym_master_logs'); if (legacy !== null) { rawLogs = legacy; legacyMasterMigrated = true; } }
-          if (!rawTemplates) { const legacy = await localStore.getItem('gym_master_templates'); if (legacy !== null) { rawTemplates = legacy; legacyMasterMigrated = true; } }
-          if (!rawBody) { const legacy = await localStore.getItem('gym_master_body'); if (legacy !== null) { rawBody = legacy; legacyMasterMigrated = true; } }
-        }
-
-        exercises = rawExercises ? JSON.parse(rawExercises) : [...defaultExercises];
-        workoutLogs = rawLogs ? JSON.parse(rawLogs) : [];
-        templates = rawTemplates ? JSON.parse(rawTemplates) : [...defaultTemplates];
-        bodyLogs = rawBody ? JSON.parse(rawBody) : [];
-
-        exercises = exercises.filter(e => e !== "Сгибания ног в тренажере");
-        defaultExercises.forEach(ex => {
-          if (!exercises.includes(ex)) {
-            exercises.push(ex);
+          const legacyKeys = ['gym_master_exercises', 'gym_master_logs', 'gym_master_templates', 'gym_master_body'];
+          for (let i = 0; i < rawValues.length; i++) {
+            if (rawValues[i] === null) {
+              const legacy = await localStore.getItem(legacyKeys[i]);
+              if (legacy !== null) { rawValues[i] = legacy; legacyMasterMigrated = true; }
+            }
           }
-        });
-
-        const savedSuccessfully = await saveData();
-        if (savedSuccessfully && legacyMasterMigrated) {
-          ['gym_master_exercises', 'gym_master_logs', 'gym_master_templates', 'gym_master_body'].forEach(key => localStorage.removeItem(key));
         }
+        const presentCount = rawValues.filter(value => value !== null).length;
+        const hasExistingAppFootprint =
+          localStorage.getItem(PRIMARY_KEY_VER) !== null ||
+          localStorage.getItem('gym_app_version') !== null ||
+          Object.keys(localStorage).some(key => key.startsWith('gym_kbdz_')) ||
+          localStorage.getItem('gym_app_theme') !== null;
+        if (presentCount === 0 && hasExistingAppFootprint) {
+          throw new Error('Основные разделы данных отсутствуют, но найдены следы ранее использовавшегося приложения. Это не считается новой установкой. Восстановите резервную копию.');
+        }
+        if (presentCount === 0) {
+          exercises = [...defaultExercises];
+          workoutLogs = [];
+          templates = defaultTemplates.map(tpl => ({ ...tpl, exercises: [...tpl.exercises] }));
+          bodyLogs = [];
+          dataReady = true;
+          if (!await saveData()) throw new Error('Не удалось безопасно создать начальные данные.');
+        } else if (presentCount !== MASTER_STORAGE_KEYS.length) {
+          const missing = MASTER_STORAGE_KEYS.filter((key, index) => rawValues[index] === null);
+          throw new Error(`Обнаружены неполные данные (${missing.join(', ')}). Автозаполнение отключено, чтобы не затереть историю. Восстановите резервную копию.`);
+        } else {
+          const parsed = [
+            parseStoredJSON(rawValues[0], 'упражнения', isValidExerciseList),
+            parseStoredJSON(rawValues[1], 'история тренировок', isValidWorkoutLogs),
+            parseStoredJSON(rawValues[2], 'шаблоны', isValidTemplates),
+            parseStoredJSON(rawValues[3], 'замеры', isValidBodyLogs)
+          ];
+          exercises = parsed[0]; workoutLogs = parsed[1]; templates = parsed[2]; bodyLogs = parsed[3];
+          const filtered = exercises.filter(e => e !== 'Сгибания ног в тренажере');
+          defaultExercises.forEach(ex => { if (!filtered.includes(ex)) filtered.push(ex); });
+          const changed = filtered.length !== exercises.length || filtered.some((v, i) => v !== exercises[i]);
+          exercises = filtered;
+          dataReady = true;
+          if ((changed || legacyMasterMigrated) && !await saveData()) throw new Error('Не удалось завершить безопасное обновление данных.');
+        }
+        dataLoadFailed = false; dataReady = true;
         await loadTheme();
-        
         renderExerciseSelects();
         renderTodaySets();
-        loadTodayKBDZData();
+        await loadTodayKBDZData();
+        if (legacyMasterMigrated) {
+          ['gym_master_exercises', 'gym_master_logs', 'gym_master_templates', 'gym_master_body'].forEach(key => localStorage.removeItem(key));
+        }
+        return true;
       } catch (e) {
-        dataLoadFailed = true;
-        console.error('Не удалось прочитать сохранённые данные. Автосохранение заблокировано до восстановления.', e);
+        dataLoadFailed = true; dataReady = false;
+        console.error('Не удалось безопасно загрузить данные. Запись заблокирована до восстановления.', e);
         const status = document.getElementById('backup-status');
-        if (status) status.textContent = '⚠️ Не удалось прочитать часть данных. Сначала восстановите резервную копию.';
-      }
+        if (status) {
+          status.textContent = `⚠️ ${e.message || 'Не удалось прочитать сохранённые данные.'} Автосохранение заблокировано.`;
+          status.style.color = 'var(--danger)';
+        }
+        return false;
+      } finally { loadInProgress = false; }
     }
 
     async function saveData() {
-      if (dataLoadFailed) return false;
+      if (dataLoadFailed || !dataReady) return false;
+      if (!isValidExerciseList(exercises) || !isValidWorkoutLogs(workoutLogs) ||
+          !isValidTemplates(templates) || !isValidBodyLogs(bodyLogs)) {
+        console.error('Сохранение отменено: данные не прошли проверку целостности.');
+        return false;
+      }
+      const keys = [...MASTER_STORAGE_KEYS, PRIMARY_KEY_VER];
+      const values = [JSON.stringify(exercises), JSON.stringify(workoutLogs),
+        JSON.stringify(templates), JSON.stringify(bodyLogs), APP_VERSION];
+      const previous = {};
       try {
-        await localStore.setItem(PRIMARY_KEY_EX, JSON.stringify(exercises));
-        await localStore.setItem(PRIMARY_KEY_LOGS, JSON.stringify(workoutLogs));
-        await localStore.setItem(PRIMARY_KEY_TPL, JSON.stringify(templates));
-        await localStore.setItem(PRIMARY_KEY_BODY, JSON.stringify(bodyLogs));
-        await localStore.setItem(PRIMARY_KEY_VER, APP_VERSION);
+        keys.forEach(key => { previous[key] = localStorage.getItem(key); });
+        for (let i = 0; i < keys.length; i++) await localStore.setItem(keys[i], values[i]);
+        lastSuccessfulSaveAt = Date.now();
         return true;
       } catch (e) {
-        console.error('Ошибка записи мастер-данных:', e);
+        Object.entries(previous).forEach(([key, value]) => {
+          try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }
+          catch (rollbackError) { console.error('Ошибка отката хранилища:', rollbackError); }
+        });
+        console.error('Ошибка записи мастер-данных; выполнен откат предыдущих значений:', e);
+        const status = document.getElementById('backup-status');
+        if (status) {
+          status.textContent = '⚠️ Не удалось сохранить данные. Предыдущие сохранённые значения восстановлены.';
+          status.style.color = 'var(--danger)';
+        }
         return false;
       }
     }
 
-    document.addEventListener('visibilitychange', () => { 
-      if (document.hidden) saveData();
-      else {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (dataReady && !dataLoadFailed) saveData();
+      } else {
         updateLastActivity();
-        loadData();
+        // Не перечитываем и не перерисовываем данные при возврате из фона:
+        // это могло сбросить введённые, но ещё не сохранённые значения форм.
       }
     });
-    window.addEventListener('pagehide', saveData);
+    window.addEventListener('pagehide', () => {
+      if (dataReady && !dataLoadFailed) saveData();
+    });
     ['click', 'touchstart', 'keydown'].forEach(evt => {
       document.addEventListener(evt, updateLastActivity, { passive: true });
     });
@@ -2954,6 +3049,7 @@
 
     function exportBackup() {
       try {
+        if (!dataReady || dataLoadFailed) throw new Error('Данные не загружены или требуют восстановления. Экспорт остановлен.');
         const entries = collectBackupEntries();
         const required = [PRIMARY_KEY_EX, PRIMARY_KEY_LOGS, PRIMARY_KEY_TPL, PRIMARY_KEY_BODY];
         required.forEach(key => { if (!(key in entries)) { const value = localStorage.getItem(key); if (value !== null) entries[key] = value; } });
@@ -2968,7 +3064,9 @@
 
         const fileName = `Lift-Lab-backup-${dateKey(new Date())}.txt`;
         const jsonStr = JSON.stringify(backup, null, 2);
-        const blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
+        validateBackupObject(backup);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+        if (blob.size > BACKUP_MAX_BYTES) throw new Error('Резервная копия превышает допустимый размер 10 МБ.');
 
         const file = new File([blob], fileName, { type: 'text/plain' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -3004,42 +3102,49 @@
     }
 
     function validateBackupObject(data) {
-      if (!data || data.format !== BACKUP_FORMAT || data.schemaVersion !== BACKUP_SCHEMA_VERSION || !data.entries || typeof data.entries !== 'object' || Array.isArray(data.entries)) {
+      if (!data || data.format !== BACKUP_FORMAT || data.schemaVersion !== BACKUP_SCHEMA_VERSION ||
+          !data.entries || typeof data.entries !== 'object' || Array.isArray(data.entries)) {
         throw new Error('Формат файла не распознан или версия резервной копии не поддерживается.');
       }
+      if (Object.keys(data.entries).length > 5000) throw new Error('В резервной копии слишком много записей.');
       const mapped = {};
       Object.entries(data.entries).forEach(([key, value]) => {
         if (!backupKeyAllowed(key) || typeof value !== 'string') throw new Error(`Недопустимая запись в резервной копии: ${key}`);
         const targetKey = remapBackupKey(key, data.profileSuffix || '');
         if (targetKey) mapped[targetKey] = value;
       });
-      const requiredArrays = [PRIMARY_KEY_EX, PRIMARY_KEY_LOGS, PRIMARY_KEY_TPL, PRIMARY_KEY_BODY];
-      requiredArrays.forEach(key => {
-        if (!(key in mapped)) throw new Error('В резервной копии отсутствует один из основных разделов данных.');
-        const parsed = JSON.parse(mapped[key]);
-        if (!Array.isArray(parsed)) throw new Error(`Повреждён раздел данных: ${key}`);
-      });
-      const logs = JSON.parse(mapped[PRIMARY_KEY_LOGS]);
-      logs.forEach(log => {
-        if (!log || typeof log !== 'object' || typeof log.exercise !== 'string' || !Number.isFinite(Number(log.weight)) || !Number.isInteger(Number(log.reps)) || !log.dateStr) throw new Error('В резервной копии обнаружена некорректная запись тренировки.');
+      const required = [
+        [PRIMARY_KEY_EX, 'упражнения', isValidExerciseList],
+        [PRIMARY_KEY_LOGS, 'история тренировок', isValidWorkoutLogs],
+        [PRIMARY_KEY_TPL, 'шаблоны', isValidTemplates],
+        [PRIMARY_KEY_BODY, 'замеры', isValidBodyLogs]
+      ];
+      required.forEach(([key, label, validator]) => {
+        if (!Object.prototype.hasOwnProperty.call(mapped, key)) throw new Error(`В резервной копии отсутствует обязательный раздел «${label}».`);
+        parseStoredJSON(mapped[key], label, validator);
       });
       Object.entries(mapped).forEach(([key, value]) => {
         if (key.startsWith('gym_kbdz_')) {
-          const parsed = JSON.parse(value);
-          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(`Повреждён дневник КБЖУ: ${key}`);
+          parseStoredJSON(value, `дневник КБЖУ (${key})`, item =>
+            item && typeof item === 'object' && !Array.isArray(item) &&
+            ['kcalIn','protein','fats','carbs','steps','extraActive'].every(field =>
+              item[field] === undefined || (Number.isFinite(Number(item[field])) && Number(item[field]) >= 0)
+            )
+          );
         }
-        if (key === 'gym_app_theme' && !['midnight-neon','emerald-luxe','white-clean','obsidian-gold','deep-amethyst','cyberpunk-red'].includes(value)) throw new Error('В резервной копии указана неизвестная тема оформления.');
+        if (key === 'gym_app_theme' && !['midnight-neon','emerald-luxe','white-clean','obsidian-gold','deep-amethyst','cyberpunk-red'].includes(value)) {
+          throw new Error('В резервной копии указана неизвестная тема оформления.');
+        }
       });
       return mapped;
     }
-
     async function importBackupFromFile(input) {
       const file = input?.files?.[0];
       if (!file) return;
       input.value = '';
       try {
         if (file.size > BACKUP_MAX_BYTES) throw new Error('Файл слишком большой (максимум 10 МБ).');
-        const parsed = JSON.parse(await file.text());
+        const parsed = JSON.parse((await file.text()).replace(/^\uFEFF/, ''));
         const mapped = validateBackupObject(parsed);
         const count = Object.keys(mapped).length;
         const message = `Будут заменены данные текущего профиля Lift Lab (${count} разделов/дней). Восстановить?`;
@@ -3085,8 +3190,15 @@
 
     try {
       checkAuth();
-      loadData();
+      loadData().then(loaded => {
+        if (!loaded) {
+          const status = document.getElementById('backup-status');
+          if (status) status.textContent = status.textContent || '⚠️ Данные не загружены. Не очищайте хранилище; используйте резервную копию.';
+        }
+      });
     } catch(e) {
+      dataLoadFailed = true;
+      dataReady = false;
       console.error('Boot error:', e);
     }
 
