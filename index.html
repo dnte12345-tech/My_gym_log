@@ -391,6 +391,12 @@
       margin-bottom: 8px;
     }
 
+    /* Компактные кнопки сортировки шаблонов: ширина не растягивает строку упражнения. */
+    .template-exercise-row { display:flex; align-items:center; gap:8px; padding:3px 0; min-width:0; }
+    .template-exercise-name { flex:1 1 auto; min-width:0; font-size:0.75rem; overflow-wrap:anywhere; }
+    .template-order-controls { display:flex; flex:0 0 auto; gap:4px; }
+    .template-order-btn { width:30px !important; min-width:30px; max-width:30px; height:28px; padding:0 !important; flex:0 0 30px; line-height:1; font-size:0.9rem; }
+
     .trophy-item {
       display: flex;
       justify-content: space-between;
@@ -497,21 +503,29 @@
       margin-top: 8px;
     }
 
-    /* При открытой экранной клавиатуре разрешаем прокрутку формы и поднимаем поля ввода. */
-    body.keyboard-open .container {
+    /* При открытой клавиатуре прокручивается вся рабочая область, включая календарь. */
+    html.keyboard-open, body.keyboard-open {
+      height: var(--keyboard-viewport-height, 100dvh);
+      min-height: 0;
       overflow-y: auto;
-      overscroll-behavior: contain;
-      padding-bottom: 24px;
+      overflow-x: hidden;
+      overscroll-behavior-y: contain;
     }
-    body.keyboard-open #tab-workout {
+    body.keyboard-open .container {
+      flex: 0 0 auto;
+      min-height: 0;
+      overflow: visible;
+      padding-bottom: 28px;
+    }
+    body.keyboard-open .tab-content.active {
       height: auto;
-      min-height: 100%;
+      min-height: 0;
       overflow: visible;
     }
-    body.keyboard-open #tab-workout > .card {
-      scroll-margin-top: 12px;
-    }
-    #input-weight, #input-reps { scroll-margin-top: 24px; scroll-margin-bottom: 180px; }
+    body.keyboard-open nav { display:none; }
+    body.keyboard-open #tab-workout > .card,
+    body.keyboard-open #tab-calendar > .card { scroll-margin-top: 12px; }
+    #input-weight, #input-reps, #cal-add-weight, #cal-add-reps { scroll-margin-top: 24px; scroll-margin-bottom: 180px; }
   </style>
 </head>
 <body data-theme="midnight-neon">
@@ -972,7 +986,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.40";
+    const APP_VERSION = "v1.0.41";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1395,47 +1409,62 @@
       document.addEventListener(evt, updateLastActivity, { passive: true });
     });
 
-    // Корректная работа формы с клавиатурой iOS/Telegram WebView.
+    // Клавиатура iOS/Telegram WebView: рабочая область становится прокручиваемой.
     (function setupWorkoutKeyboard() {
       const weightInput = document.getElementById('input-weight');
       const repsInput = document.getElementById('input-reps');
-      const formCard = document.querySelector('#tab-workout .card:nth-of-type(3)');
       const viewport = window.visualViewport;
+      const calendarWeight = () => document.getElementById('cal-add-weight');
+      const calendarReps = () => document.getElementById('cal-add-reps');
+      const isEntryField = el => el && (el.matches('#input-weight, #input-reps, #cal-add-weight, #cal-add-reps') || el.matches('input, textarea, select'));
       const updateKeyboardLayout = () => {
-        const keyboardVisible = Boolean(viewport && window.screen.height - viewport.height > 140);
-        document.body.classList.toggle('keyboard-open', keyboardVisible && document.activeElement?.matches('input, textarea, select'));
+        const keyboardVisible = Boolean(viewport && (window.innerHeight - viewport.height > 120 || window.screen.height - viewport.height > 140));
+        const active = document.activeElement;
+        const open = keyboardVisible && isEntryField(active);
+        document.documentElement.classList.toggle('keyboard-open', open);
+        document.body.classList.toggle('keyboard-open', open);
+        if (open && viewport) document.documentElement.style.setProperty('--keyboard-viewport-height', `${Math.max(240, viewport.height)}px`);
+        else document.documentElement.style.removeProperty('--keyboard-viewport-height');
+        if (open && active?.matches('input, textarea')) {
+          requestAnimationFrame(() => active.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+        }
       };
+      const scrollFocusedField = input => requestAnimationFrame(() => {
+        if (input?.isConnected) input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
       if (viewport) {
         viewport.addEventListener('resize', updateKeyboardLayout);
         viewport.addEventListener('scroll', updateKeyboardLayout);
       }
-      [weightInput, repsInput].forEach(input => {
-        if (!input) return;
-        input.addEventListener('focus', () => {
-          document.body.classList.add('keyboard-open');
-          updateKeyboardLayout();
-          requestAnimationFrame(() => {
-            if (formCard) formCard.scrollIntoView({ block: 'start', behavior: 'smooth' });
-            input.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          });
-        });
-        input.addEventListener('blur', () => {
-          window.setTimeout(() => {
-            if (!document.activeElement?.matches('input, textarea, select')) {
-              document.body.classList.remove('keyboard-open');
-            }
-          }, 180);
-        });
-        input.addEventListener('keydown', event => {
-          if (event.key !== 'Enter') return;
-          event.preventDefault();
-          if (input === weightInput && repsInput) {
-            repsInput.focus();
-          } else {
-            input.blur(); // Enter на поле повторений работает как Done и закрывает клавиатуру.
-          }
-        });
+      document.addEventListener('focusin', event => {
+        if (!isEntryField(event.target)) return;
+        document.body.classList.add('keyboard-open');
+        document.documentElement.classList.add('keyboard-open');
+        if (viewport) document.documentElement.style.setProperty('--keyboard-viewport-height', `${Math.max(240, viewport.height)}px`);
+        scrollFocusedField(event.target);
       });
+      document.addEventListener('focusout', () => {
+        window.setTimeout(() => {
+          if (!isEntryField(document.activeElement)) {
+            document.body.classList.remove('keyboard-open');
+            document.documentElement.classList.remove('keyboard-open');
+            document.documentElement.style.removeProperty('--keyboard-viewport-height');
+          }
+        }, 180);
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        const target = event.target;
+        if (target.matches('#input-weight, #cal-add-weight')) {
+          event.preventDefault();
+          const next = target.id === 'cal-add-weight' ? calendarReps() : repsInput;
+          if (next) { next.focus(); scrollFocusedField(next); }
+        } else if (target.matches('#input-reps, #cal-add-reps')) {
+          event.preventDefault();
+          target.blur();
+        }
+      });
+      [weightInput, repsInput].forEach(input => input?.addEventListener('focus', () => scrollFocusedField(input)));
     })();
 
     function triggerHaptic() {
@@ -2262,7 +2291,7 @@
             <span class="template-title">${tpl.name}</span>
             <button class="btn-close" onclick="removeTemplate('${tpl.id}')" title="Удалить шаблон">&times;</button>
           </div>
-          <div class="template-exercises-list">${tpl.exercises.map((ex,i)=>`<div style="display:flex;align-items:center;gap:5px;padding:3px 0;"><span style="flex:1;">${i+1}. ${ex}</span><button class="btn-step" onclick="moveTemplateExercise('${tpl.id}',${i},-1)" ${i===0?'disabled':''} style="padding:2px 7px;">↑</button><button class="btn-step" onclick="moveTemplateExercise('${tpl.id}',${i},1)" ${i===tpl.exercises.length-1?'disabled':''} style="padding:2px 7px;">↓</button></div>`).join('')}</div>
+          <div class="template-exercises-list">${tpl.exercises.map((ex,i)=>`<div class="template-exercise-row"><span class="template-exercise-name">${i+1}. ${ex}</span><div class="template-order-controls"><button type="button" class="template-order-btn" onclick="moveTemplateExercise('${tpl.id}',${i},-1)" ${i===0?'disabled':''} aria-label="Переместить выше">↑</button><button type="button" class="template-order-btn" onclick="moveTemplateExercise('${tpl.id}',${i},1)" ${i===tpl.exercises.length-1?'disabled':''} aria-label="Переместить ниже">↓</button></div></div>`).join('')}</div>
           <div class="row" style="gap:6px; margin-top:6px; flex-wrap:wrap;">
             <button class="btn-step" onclick="editTemplate('${tpl.id}')" style="padding:6px;">✏️ Редактировать</button>
             <button class="btn-step" onclick="copyTemplate('${tpl.id}')" style="padding:6px;">⧉ Копировать</button>
