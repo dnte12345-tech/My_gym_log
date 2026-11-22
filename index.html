@@ -500,20 +500,25 @@
     .analytics-period-switch { display:flex; gap:3px; width:100%; }
     .analytics-period-switch button { flex:1; min-width:0; padding:5px 2px; font-size:.62rem; white-space:nowrap; }
 
-    /* Компактная схематичная карта тела без прорисовки мышц. */
-    .muscle-map-panel { display:flex; align-items:center; gap:8px; min-width:0; margin:6px 0; padding:7px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); }
-    .muscle-map-art { position:relative; width:142px; flex:0 0 142px; overflow:hidden; border-radius:6px; background:#11151c; line-height:0; }
-    .muscle-map-art svg { display:block; width:100%; height:auto; }
-    .muscle-map-panel.compact { padding:2px; margin:0; gap:0; flex:0 0 54px; }
-    .muscle-map-panel.compact .muscle-map-art { width:52px; flex-basis:52px; }
-    .muscle-map-panel.compact .muscle-map-caption { display:none; }
+    /* Компактное текстовое отображение задействованных групп мышц. */
+    .muscle-map-panel { display:flex; align-items:flex-start; min-width:0; margin:5px 0; padding:5px 7px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); }
+    .muscle-map-art { display:none !important; }
     .muscle-map-caption { min-width:0; display:flex; flex-direction:column; gap:4px; }
     .muscle-map-heading { color:var(--text-muted); font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
     .muscle-chip-list { display:flex; flex-wrap:wrap; gap:4px; }
     .muscle-chip { display:inline-flex; align-items:center; border:1px solid var(--border-color); border-radius:12px; padding:3px 6px; color:var(--text-main); font-size:.62rem; line-height:1.2; }
     .muscle-chip.primary { border-color:#ef4444; color:#ef4444; font-weight:800; }
-    .template-muscle-summary { margin:7px 0 9px; }
+    .template-muscle-summary { margin:5px 0 7px; }
     .template-exercise-muscles { display:block; margin-top:2px; color:var(--text-muted); font-size:.62rem; }
+    .body-measure-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .body-measure-grid label { display:block; margin-bottom:3px; font-size:.68rem; }
+    .body-measure-grid input { margin:0; }
+    .body-measure-actions { display:flex; gap:6px; }
+    .body-measure-actions button { flex:1; }
+    .body-record-card { padding:7px; margin:5px 0; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); }
+    .body-record-values { font-size:.68rem; line-height:1.55; }
+    .body-record-actions { display:flex; gap:5px; margin-top:5px; justify-content:flex-end; }
+    .body-record-actions button { padding:4px 8px; font-size:.65rem; }
     .exercise-manage-card { display:flex; align-items:center; gap:6px; padding:6px 7px; margin-bottom:4px; border-radius:7px; background:var(--bg-color); border:1px solid var(--border-color); }
     .exercise-manage-main { flex:1; min-width:0; font-size:.72rem; }
     .exercise-manage-actions { display:flex; flex-direction:row; gap:4px; flex:0 0 auto; }
@@ -946,38 +951,32 @@
 
       <div id="body-subtab-measures" class="card card-scrollable" style="display: none; flex-direction: column; gap: 8px;">
         <div>
-          <h2>📏 Замеры объемов тела</h2>
-          <div class="row" style="margin-bottom:4px;">
-            <div>
-              <label>Вес тела (кг)</label>
-              <input type="number" id="input-body-weight" placeholder="71.7" step="0.1">
-            </div>
-            <div>
-              <label>Талия (см)</label>
-              <input type="number" id="input-body-waist" placeholder="0" step="0.5">
-            </div>
+          <h2>📏 Замеры тела</h2>
+          <p style="font-size:.68rem;color:var(--text-muted);margin:0 0 7px;">Можно записывать не все параметры сразу. Достаточно заполнить хотя бы одно поле.</p>
+          <label>Дата замера</label>
+          <input type="date" id="input-body-date" style="margin-bottom:7px;">
+          <div class="body-measure-grid">
+            <div><label>Вес (кг)</label><input type="number" id="input-body-weight" placeholder="71.7" step="0.1" min="0"></div>
+            <div><label>Талия (см)</label><input type="number" id="input-body-waist" placeholder="80" step="0.5" min="0"></div>
+            <div><label>Грудь (см)</label><input type="number" id="input-body-chest" placeholder="100" step="0.5" min="0"></div>
+            <div><label>Бедра (см)</label><input type="number" id="input-body-hips" placeholder="95" step="0.5" min="0"></div>
+            <div><label>Бицепс (см)</label><input type="number" id="input-body-bicep" placeholder="35" step="0.5" min="0"></div>
+            <div><label>Ягодицы (см)</label><input type="number" id="input-body-glutes" placeholder="100" step="0.5" min="0"></div>
+            <div><label>Плечи (см)</label><input type="number" id="input-body-shoulders" placeholder="115" step="0.5" min="0"></div>
+            <div><label>Бедро (см)</label><input type="number" id="input-body-thigh" placeholder="58" step="0.5" min="0"></div>
+            <div><label>Голень (см)</label><input type="number" id="input-body-calf" placeholder="38" step="0.5" min="0"></div>
+            <div><label>Жир (%)</label><input type="number" id="input-body-fat" placeholder="18" step="0.1" min="0" max="70"></div>
           </div>
-          <div class="row" style="margin-bottom:4px;">
-            <div>
-              <label>Грудь (см)</label>
-              <input type="number" id="input-body-chest" placeholder="0" step="0.5">
-            </div>
-            <div>
-              <label>Бедра (см)</label>
-              <input type="number" id="input-body-hips" placeholder="0" step="0.5">
-            </div>
+          <div class="body-measure-actions" style="margin-top:8px;">
+            <button id="body-record-save-btn" class="btn-primary" onclick="addBodyRecord()">Записать замеры</button>
+            <button id="body-record-cancel-btn" class="btn-step" onclick="cancelBodyRecordEdit()" style="display:none;">Отмена</button>
           </div>
-          <div class="row" style="margin-bottom:6px;">
-            <div>
-              <label>Бицепс (см)</label>
-              <input type="number" id="input-body-bicep" placeholder="0" step="0.5">
-            </div>
-            <div>
-              <label>Ягодицы (см)</label>
-              <input type="number" id="input-body-glutes" placeholder="0" step="0.5">
-            </div>
-          </div>
-          <button class="btn-primary" onclick="addBodyRecord()" style="margin-bottom: 8px;">Записать параметры</button>
+          <div id="body-record-form-status" style="font-size:.65rem;color:var(--text-muted);margin-top:5px;"></div>
+        </div>
+
+        <div id="body-measurement-summary" class="card" style="padding:8px;margin:0;">
+          <h2 style="font-size:.75rem;margin-bottom:5px;">Изменения относительно прошлого замера</h2>
+          <div id="body-measurement-summary-content" style="font-size:.68rem;color:var(--text-muted);">Добавьте два замера, чтобы увидеть динамику.</div>
         </div>
 
         <div style="max-height: 160px; display: flex; flex-direction: column; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px;">
@@ -989,7 +988,11 @@
               <option value="chest">📐 Грудь (см)</option>
               <option value="hips">🦵 Бедра (см)</option>
               <option value="bicep">💪 Бицепс (см)</option>
-              <option value="glutes">🍑 Ягодицы (см)</option>
+              <option value="glutes">Ягодицы (см)</option>
+              <option value="shoulders">Плечи (см)</option>
+              <option value="thigh">Бедро (см)</option>
+              <option value="calf">Голень (см)</option>
+              <option value="bodyFat">Жир (%)</option>
             </select>
           </div>
           <div style="flex: 1; min-height: 90px;">
@@ -1031,7 +1034,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.44";
+    const APP_VERSION = "v1.0.45";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1316,11 +1319,14 @@
       );
     }
     function isValidBodyLogs(value) {
-      return Array.isArray(value) && value.every(record =>
-        record && typeof record === 'object' && !Array.isArray(record) &&
-        isValidDateKey(record.dateStr) &&
-        Number.isFinite(Number(record.weight)) && Number(record.weight) > 0
-      );
+      const numericFields = ['weight','waist','chest','hips','bicep','glutes','shoulders','thigh','calf','bodyFat'];
+      return Array.isArray(value) && value.every(record => {
+        if (!record || typeof record !== 'object' || Array.isArray(record) || !isValidDateKey(record.dateStr)) return false;
+        const present = numericFields.filter(key => record[key] !== null && record[key] !== undefined && record[key] !== '');
+        return present.length > 0 && present.every(key => Number.isFinite(Number(record[key])) && Number(record[key]) >= 0) &&
+          (record.weight === null || record.weight === undefined || Number(record.weight) > 0) &&
+          (record.bodyFat === null || record.bodyFat === undefined || Number(record.bodyFat) <= 70);
+      });
     }
     async function getKBDZForDate(dateStr) {
       const current = await localStore.getItem(kbdzStorageKey(dateStr));
@@ -2260,30 +2266,8 @@
     function renderMuscleMap(groups, compact=false, showPrimary=true) {
       const active = [...new Set((groups || []).filter(g => g && g !== 'Другое'))];
       const primary = active[0];
-      const gender = document.getElementById('user-gender')?.value || localStorage.getItem('lift_lab_body_gender') || 'male';
-      const female = gender === 'female';
       const chips = active.map(group => `<span class="muscle-chip ${showPrimary && group === primary ? 'primary' : ''}" style="${group===primary?'border-color:#ef4444;color:#ef4444;':'border-color:#3b82f6;color:#60a5fa;'}">${showPrimary && group === primary ? 'Основная: ' : ''}${group}</span>`).join('');
-      const bodyFront = female
-        ? 'M50 8 C43 8 40 13 41 19 L35 25 L29 38 L32 48 L37 44 L39 34 L41 29 L42 48 L39 61 L34 78 L37 88 L42 88 L45 76 L48 61 L50 54 L52 61 L55 76 L58 88 L63 88 L66 78 L61 61 L58 48 L59 29 L61 34 L63 44 L68 48 L71 38 L65 25 L59 19 C60 13 57 8 50 8 Z'
-        : 'M50 8 C43 8 40 13 41 19 L32 23 L25 32 L29 44 L35 42 L38 31 L41 27 L42 49 L38 65 L34 82 L38 90 L43 89 L46 73 L49 57 L51 57 L54 73 L57 89 L62 90 L66 82 L62 65 L58 49 L59 27 L62 31 L65 42 L71 44 L75 32 L68 23 L59 19 C60 13 57 8 50 8 Z';
-      const bodyBack = female
-        ? 'M50 8 C43 8 40 13 41 19 L35 25 L29 38 L32 48 L37 44 L39 34 L41 29 L42 48 L39 61 L34 78 L37 88 L42 88 L45 76 L48 61 L50 54 L52 61 L55 76 L58 88 L63 88 L66 78 L61 61 L58 48 L59 29 L61 34 L63 44 L68 48 L71 38 L65 25 L59 19 C60 13 57 8 50 8 Z'
-        : bodyFront;
-      const areas = {
-        'Грудь': '<ellipse cx="50" cy="29" rx="11" ry="5"/><ellipse cx="150" cy="29" rx="11" ry="5"/>',
-        'Спина': '<ellipse cx="150" cy="31" rx="13" ry="13"/>',
-        'Плечи': '<circle cx="35" cy="25" r="5"/><circle cx="65" cy="25" r="5"/><circle cx="135" cy="25" r="5"/><circle cx="165" cy="25" r="5"/>',
-        'Руки': '<ellipse cx="31" cy="42" rx="4" ry="12"/><ellipse cx="69" cy="42" rx="4" ry="12"/><ellipse cx="131" cy="42" rx="4" ry="12"/><ellipse cx="169" cy="42" rx="4" ry="12"/>',
-        'Пресс': '<rect x="45" y="34" width="10" height="18" rx="5"/><rect x="145" y="34" width="10" height="18" rx="5"/>',
-        'Ноги / Ягодицы': '<ellipse cx="44" cy="67" rx="6" ry="17"/><ellipse cx="56" cy="67" rx="6" ry="17"/><ellipse cx="144" cy="67" rx="6" ry="17"/><ellipse cx="156" cy="67" rx="6" ry="17"/>',
-      };
-      let overlays='';
-      active.forEach((g,i)=>{ if(areas[g]) overlays += `<g fill="${g===primary?'#ef4444':'#3b82f6'}" opacity=".9">${areas[g]}</g>`; });
-      const arms = '<path d="M34 25 Q27 31 27 44 L22 56 Q20 60 23 62 Q26 63 28 58 L34 46 L40 31 M66 25 Q73 31 73 44 L78 56 Q80 60 77 62 Q74 63 72 58 L66 46 L60 31" fill="none" stroke="#aeb8c7" stroke-width="5" stroke-linecap="round"/>';
-      const legs = '<path d="M44 57 Q39 70 39 83 L37 98 Q37 102 42 102 L47 101 L50 60 M56 57 Q61 70 61 83 L63 98 Q63 102 58 102 L53 101 L50 60" fill="none" stroke="#aeb8c7" stroke-width="6" stroke-linecap="round"/>';
-      const figure=(x,path,back=false)=>`<g transform="translate(${x},0)"><circle cx="50" cy="7" r="5.5" fill="#aeb8c7"/><path d="${path}" fill="#aeb8c7" stroke="#d1d9e4" stroke-width=".7"/>${arms}${legs}</g>`;
-      const svg=`<svg viewBox="0 0 200 112" role="img" aria-label="Схематичный силуэт тела ${female?'женский':'мужской'} с подсветкой групп мышц"><rect width="200" height="112" fill="#11151c"/>${figure(0,bodyFront)}${figure(100,bodyBack,true)}<g>${overlays}</g></svg>`;
-      return `<div class="muscle-map-panel ${compact ? 'compact' : ''}"><div class="muscle-map-art">${svg}</div><div class="muscle-map-caption"><span class="muscle-map-heading">Задействованные группы</span><div class="muscle-chip-list">${chips || '<span class="muscle-chip">Группа не назначена</span>'}</div><span style="font-size:.58rem;color:var(--text-muted);"><span style="color:#ef4444">●</span> Основная &nbsp; <span style="color:#3b82f6">●</span> Вспомогательная</span></div></div>`;
+      return `<div class="muscle-map-panel"><div class="muscle-map-caption"><span class="muscle-map-heading">Задействованные группы</span><div class="muscle-chip-list">${chips || '<span class="muscle-chip">Группа не назначена</span>'}</div><span style="font-size:.58rem;color:var(--text-muted);"><span style="color:#ef4444">●</span> Основная &nbsp; <span style="color:#3b82f6">●</span> Вспомогательная</span></div></div>`;
     }
 
     function renderTemplateCheckboxes() {
@@ -2509,91 +2493,132 @@
       triggerHaptic();
     }
 
-    async function addBodyRecord() {
-      const weightInput = document.getElementById('input-body-weight');
-      const waistInput = document.getElementById('input-body-waist');
-      const chestInput = document.getElementById('input-body-chest');
-      const hipsInput = document.getElementById('input-body-hips');
-      const bicepInput = document.getElementById('input-body-bicep');
-      const glutesInput = document.getElementById('input-body-glutes');
-      
-      const weight = parseFloat(weightInput ? weightInput.value : 0);
-      const waist = parseFloat(waistInput ? waistInput.value : 0);
-      const chest = parseFloat(chestInput ? chestInput.value : 0);
-      const hips = parseFloat(hipsInput ? hipsInput.value : 0);
-      const bicep = parseFloat(bicepInput ? bicepInput.value : 0);
-      const glutes = parseFloat(glutesInput ? glutesInput.value : 0);
+    let editingBodyRecordId = null;
+    const BODY_METRICS = [
+      ['weight','Вес','кг'],['waist','Талия','см'],['chest','Грудь','см'],['hips','Бедра','см'],
+      ['bicep','Бицепс','см'],['glutes','Ягодицы','см'],['shoulders','Плечи','см'],['thigh','Бедро','см'],
+      ['calf','Голень','см'],['bodyFat','Жир','%']
+    ];
 
-      if (isNaN(weight) || weight <= 0) {
-        if (tg?.showAlert) tg.showAlert('Введите корректный вес тела');
-        else alert('Введите корректный вес тела');
+    function resetBodyRecordForm() {
+      ['weight','waist','chest','hips','bicep','glutes','shoulders','thigh','calf','fat'].forEach(key => {
+        const el = document.getElementById(`input-body-${key}`); if (el) el.value = '';
+      });
+      const dateEl = document.getElementById('input-body-date');
+      if (dateEl) dateEl.value = dateKey(new Date());
+      editingBodyRecordId = null;
+      const saveBtn = document.getElementById('body-record-save-btn');
+      const cancelBtn = document.getElementById('body-record-cancel-btn');
+      const status = document.getElementById('body-record-form-status');
+      if (saveBtn) saveBtn.textContent = 'Записать замеры';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      if (status) status.textContent = '';
+    }
+
+    function cancelBodyRecordEdit() { resetBodyRecordForm(); }
+
+    function editBodyRecord(id) {
+      const rec = bodyLogs.find(r => String(r.id) === String(id));
+      if (!rec) return;
+      editingBodyRecordId = rec.id;
+      const fields = {weight:'weight',waist:'waist',chest:'chest',hips:'hips',bicep:'bicep',glutes:'glutes',shoulders:'shoulders',thigh:'thigh',calf:'calf',fat:'bodyFat'};
+      Object.entries(fields).forEach(([inputKey,recordKey]) => {
+        const el = document.getElementById(`input-body-${inputKey}`);
+        if (el) el.value = rec[recordKey] ?? '';
+      });
+      const dateEl = document.getElementById('input-body-date'); if (dateEl) dateEl.value = rec.dateStr || dateKey(new Date());
+      const saveBtn = document.getElementById('body-record-save-btn'); if (saveBtn) saveBtn.textContent = 'Сохранить изменения';
+      const cancelBtn = document.getElementById('body-record-cancel-btn'); if (cancelBtn) cancelBtn.style.display = 'block';
+      const status = document.getElementById('body-record-form-status'); if (status) status.textContent = 'Редактирование выбранной записи';
+      document.getElementById('body-subtab-measures')?.scrollTo({top:0,behavior:'smooth'});
+      triggerHaptic();
+    }
+
+    async function addBodyRecord() {
+      const fields = [
+        ['weight','input-body-weight'],['waist','input-body-waist'],['chest','input-body-chest'],['hips','input-body-hips'],
+        ['bicep','input-body-bicep'],['glutes','input-body-glutes'],['shoulders','input-body-shoulders'],
+        ['thigh','input-body-thigh'],['calf','input-body-calf'],['bodyFat','input-body-fat']
+      ];
+      const values = {};
+      let hasValue = false;
+      for (const [key,id] of fields) {
+        const el = document.getElementById(id);
+        const raw = el?.value?.trim() ?? '';
+        if (raw === '') { values[key] = null; continue; }
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value < 0 || (key === 'bodyFat' && value > 70) || (key === 'weight' && value === 0)) {
+          const msg = 'Проверьте введённые значения. Вес должен быть больше нуля, процент жира — от 0 до 70.';
+          if (tg?.showAlert) tg.showAlert(msg); else alert(msg);
+          return;
+        }
+        values[key] = value; hasValue = true;
+      }
+      if (!hasValue) {
+        const msg = 'Заполните хотя бы один параметр.';
+        if (tg?.showAlert) tg.showAlert(msg); else alert(msg);
         return;
       }
-
-      const now = new Date();
-      const newRecord = {
-        id: makeSetId(),
-        dateStr: dateKey(now),
-        weight,
-        waist: isNaN(waist) ? 0 : waist,
-        chest: isNaN(chest) ? 0 : chest,
-        hips: isNaN(hips) ? 0 : hips,
-        bicep: isNaN(bicep) ? 0 : bicep,
-        glutes: isNaN(glutes) ? 0 : glutes
-      };
-
-      bodyLogs.push(newRecord);
-      bodyLogs.sort((a, b) => dateFromKey(a.dateStr) - dateFromKey(b.dateStr));
-      syncLatestWeightToCalc();
+      const dateStr = document.getElementById('input-body-date')?.value || dateKey(new Date());
+      if (!isValidDateKey(dateStr)) {
+        const msg = 'Выберите корректную дату замера.';
+        if (tg?.showAlert) tg.showAlert(msg); else alert(msg);
+        return;
+      }
+      let record;
+      if (editingBodyRecordId !== null) {
+        const index = bodyLogs.findIndex(r => String(r.id) === String(editingBodyRecordId));
+        if (index < 0) { cancelBodyRecordEdit(); return; }
+        record = {...bodyLogs[index], ...values, dateStr};
+        bodyLogs[index] = record;
+      } else {
+        record = {id:makeSetId(), dateStr, ...values};
+        bodyLogs.push(record);
+      }
+      bodyLogs.sort((a,b) => dateFromKey(a.dateStr) - dateFromKey(b.dateStr));
+      if (values.weight !== null && values.weight !== undefined) syncLatestWeightToCalc();
       recalculateTDEE();
       await saveData();
-      renderBodyLogs();
-      updateBodyChart();
+      renderBodyLogs(); updateBodyChart(); renderBodyMeasurementSummary();
+      resetBodyRecordForm();
       triggerHaptic();
-      
-      if (weightInput) weightInput.value = '';
-      if (waistInput) waistInput.value = '';
-      if (chestInput) chestInput.value = '';
-      if (hipsInput) hipsInput.value = '';
-      if (bicepInput) bicepInput.value = '';
-      if (glutesInput) glutesInput.value = '';
     }
 
     function renderBodyLogs() {
       const container = document.getElementById('body-logs-list');
       if (!container) return;
-
-      if (bodyLogs.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem;">Записей пока нет</p>';
+      if (!bodyLogs.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;">Записей пока нет</p>';
         return;
       }
-
       container.innerHTML = '';
       [...bodyLogs].reverse().forEach(rec => {
-        const formattedDate = dateFromKey(rec.dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
-        const parts = [`<strong style="color: var(--accent);">${rec.weight} кг</strong>`];
-        if (rec.waist) parts.push(`тал: ${rec.waist}см`);
-        if (rec.chest) parts.push(`грудь: ${rec.chest}см`);
-        if (rec.hips) parts.push(`бедр: ${rec.hips}см`);
-        if (rec.bicep) parts.push(`биц: ${rec.bicep}см`);
-        if (rec.glutes) parts.push(`ягод: ${rec.glutes}см`);
-
-        const row = document.createElement('div');
-        row.className = 'set-item-row';
-        row.innerHTML = `
-          <span>${formattedDate}: ${parts.join(' • ')}</span>
-          <button class="btn-close" onclick="deleteBodyRecord(${rec.id})" title="Удалить">&times;</button>
-        `;
+        const formattedDate = dateFromKey(rec.dateStr).toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'});
+        const values = BODY_METRICS.filter(([key]) => rec[key] !== null && rec[key] !== undefined && rec[key] !== '' && Number(rec[key]) > 0)
+          .map(([key,label,unit]) => `${label}: <strong>${Number(rec[key]).toLocaleString('ru-RU')} ${unit}</strong>`);
+        const row = document.createElement('div'); row.className = 'body-record-card';
+        row.innerHTML = `<div style="display:flex;justify-content:space-between;gap:6px;align-items:center;"><strong style="font-size:.72rem;">${formattedDate}</strong><span style="font-size:.6rem;color:var(--text-muted);">${values.length} параметр(ов)</span></div><div class="body-record-values">${values.join(' · ') || 'Нет значений'}</div><div class="body-record-actions"><button class="btn-step" onclick="editBodyRecord(${JSON.stringify(String(rec.id))})">Изменить</button><button class="btn-close" onclick="deleteBodyRecord(${JSON.stringify(String(rec.id))})" title="Удалить">×</button></div>`;
         container.appendChild(row);
       });
     }
 
     async function deleteBodyRecord(id) {
       triggerHaptic();
-      bodyLogs = bodyLogs.filter(r => r.id !== id);
+      bodyLogs = bodyLogs.filter(r => String(r.id) !== String(id));
+      if (String(editingBodyRecordId) === String(id)) resetBodyRecordForm();
       await saveData();
-      renderBodyLogs();
-      updateBodyChart();
+      renderBodyLogs(); updateBodyChart(); renderBodyMeasurementSummary();
+    }
+
+    function renderBodyMeasurementSummary() {
+      const target = document.getElementById('body-measurement-summary-content');
+      if (!target) return;
+      const ordered = [...bodyLogs].sort((a,b)=>dateFromKey(a.dateStr)-dateFromKey(b.dateStr));
+      if (ordered.length < 2) { target.textContent = 'Добавьте ещё один замер, чтобы увидеть изменения.'; return; }
+      const latest = ordered[ordered.length-1], previous = [...ordered.slice(0,-1)].reverse().find(r => r.dateStr !== latest.dateStr) || ordered[ordered.length-2];
+      const rows = BODY_METRICS.filter(([key]) => Number.isFinite(Number(latest[key])) && Number(latest[key]) > 0 && Number.isFinite(Number(previous[key])) && Number(previous[key]) > 0)
+        .map(([key,label,unit]) => { const delta = Number((Number(latest[key])-Number(previous[key])).toFixed(1)); const sign = delta > 0 ? '+' : ''; return `<span>${label}: <strong>${sign}${delta.toLocaleString('ru-RU')} ${unit}</strong></span>`; });
+      target.innerHTML = rows.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px 12px;">${rows.join('')}</div><div style="font-size:.58rem;color:var(--text-muted);margin-top:4px;">Сравнение двух последних дат с доступными значениями</div>` : 'Пока нет общих параметров для сравнения двух последних замеров.';
     }
 
     let bodyChartInstance = null;
@@ -2613,7 +2638,11 @@
         chest: { label: 'Грудь (см)', key: 'chest', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.1)' },
         hips: { label: 'Бедра (см)', key: 'hips', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
         bicep: { label: 'Бицепс (см)', key: 'bicep', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
-        glutes: { label: 'Ягодицы (см)', key: 'glutes', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' }
+        glutes: { label: 'Ягодицы (см)', key: 'glutes', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+        shoulders: { label: 'Плечи (см)', key: 'shoulders', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
+        thigh: { label: 'Бедро (см)', key: 'thigh', color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },
+        calf: { label: 'Голень (см)', key: 'calf', color: '#84cc16', bg: 'rgba(132, 204, 22, 0.1)' },
+        bodyFat: { label: 'Жир (%)', key: 'bodyFat', color: '#e879f9', bg: 'rgba(232, 121, 249, 0.1)' }
       };
 
       const cfg = metricConfig[selectedMetric] || metricConfig.weight;
@@ -3008,6 +3037,7 @@
         tabCalc.style.display = 'none';
         tabMeasures.style.display = 'flex';
         renderBodyLogs();
+        renderBodyMeasurementSummary();
         updateBodyChart();
       }
     }
@@ -3413,7 +3443,11 @@
     try {
       checkAuth();
       loadData().then(loaded => {
-        if (loaded) restoreWorkoutDraft();
+        if (loaded) {
+          restoreWorkoutDraft();
+          renderBodyLogs(); renderBodyMeasurementSummary();
+          updateBodyChart();
+        }
         if (!loaded) {
           const status = document.getElementById('backup-status');
           if (status) status.textContent = status.textContent || '⚠️ Данные не загружены. Не очищайте хранилище; используйте резервную копию.';
@@ -3424,6 +3458,9 @@
       dataReady = false;
       console.error('Boot error:', e);
     }
+
+    const bodyDateInput = document.getElementById('input-body-date');
+    if (bodyDateInput && !bodyDateInput.value) bodyDateInput.value = dateKey(new Date());
 
     const verDisplay = document.getElementById('app-version-display');
     if (verDisplay) verDisplay.textContent = `Версия приложения: ${APP_VERSION}`;
