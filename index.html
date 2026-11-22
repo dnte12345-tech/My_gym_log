@@ -569,6 +569,115 @@
     body.keyboard-open #tab-workout > .card,
     body.keyboard-open #tab-calendar > .card { scroll-margin-top: 12px; }
     #input-weight, #input-reps, #cal-add-weight, #cal-add-reps { scroll-margin-top: 24px; scroll-margin-bottom: 180px; }
+
+
+    /* Lift Lab Premium Dashboard — v1.0.49. Визуальный слой без изменения логики и схем данных. */
+    :root {
+      --bg-color: #080d16;
+      --card-bg: #111a29;
+      --input-bg: #0b1320;
+      --accent: #42c8ff;
+      --accent-text: #06111b;
+      --accent-green: #38d99a;
+      --text-main: #f4f8fc;
+      --text-muted: #8293a8;
+      --border-color: rgba(132, 160, 190, .16);
+      --accent-soft: rgba(66, 200, 255, .11);
+    }
+    [data-theme="midnight-neon"] {
+      --bg-color:#080d16; --card-bg:#111a29; --input-bg:#0b1320;
+      --accent:#42c8ff; --accent-text:#06111b; --accent-green:#38d99a;
+      --text-main:#f4f8fc; --text-muted:#8293a8;
+      --border-color:rgba(132,160,190,.16); --accent-soft:rgba(66,200,255,.11);
+    }
+    html, body { background:var(--bg-color); }
+    body { background-image:radial-gradient(ellipse at 50% -18%, rgba(30,111,164,.19), transparent 48%); }
+    header {
+      min-height:58px; padding:calc(env(safe-area-inset-top) + 9px) 18px 10px;
+      justify-content:flex-start; text-align:left; background:rgba(10,16,27,.94);
+      border-bottom:1px solid rgba(125,160,190,.12); backdrop-filter:blur(18px);
+    }
+    header h1 { font-size:1rem; letter-spacing:1.7px; color:#eaf7ff; }
+    header h1::before { content:""; display:inline-block; width:7px; height:7px; margin:0 9px 2px 0; border-radius:50%; background:var(--accent); box-shadow:0 0 13px rgba(66,200,255,.8); }
+    .gear-btn { right:16px; width:36px; height:36px; border:1px solid var(--border-color); border-radius:12px; background:rgba(255,255,255,.045); font-size:1rem; }
+    .container { max-width:560px; padding:12px 13px 8px; gap:10px; }
+    .tab-content { gap:10px; }
+    .card {
+      position:relative; overflow:hidden; padding:13px 14px; border-radius:17px;
+      background:linear-gradient(145deg, rgba(23,35,53,.98), rgba(14,23,37,.98));
+      border:1px solid rgba(135,166,198,.15);
+      box-shadow:0 8px 24px rgba(0,0,0,.17), inset 0 1px 0 rgba(255,255,255,.025);
+    }
+    .card h2 { font-size:.78rem; letter-spacing:.9px; color:#c8d8e8; margin-bottom:9px; }
+    #tab-workout > .card:first-child {
+      min-height:91px; padding:13px 14px;
+      background:linear-gradient(112deg, rgba(13,66,98,.92), rgba(17,33,53,.98) 58%, rgba(17,26,41,.98));
+      border-color:rgba(66,200,255,.28);
+      box-shadow:0 10px 28px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    #tab-workout > .card:first-child::before {
+      content:"TRAINING SESSION"; display:block; margin-bottom:9px; color:#8bdfff;
+      font-size:.59rem; font-weight:800; letter-spacing:1.8px;
+    }
+    #tab-workout > .card:first-child::after {
+      content:""; position:absolute; width:125px; height:125px; right:-48px; top:-67px;
+      border:1px solid rgba(89,209,255,.2); border-radius:50%; box-shadow:0 0 0 14px rgba(89,209,255,.035),0 0 0 29px rgba(89,209,255,.025); pointer-events:none;
+    }
+    #btn-toggle-session { min-height:39px; border-radius:12px; padding:8px 13px !important; box-shadow:0 5px 16px rgba(35,174,232,.2); }
+    #session-status-text { max-width:48%; text-align:right; line-height:1.35; }
+    #tab-workout > .card:nth-of-type(3), #tab-workout > .card:nth-of-type(4) { background:linear-gradient(145deg,rgba(19,30,46,.98),rgba(13,21,34,.98)); }
+    button { border-radius:11px; min-height:36px; }
+    .btn-primary { box-shadow:0 4px 14px rgba(66,200,255,.14); }
+    .btn-success { box-shadow:0 4px 14px rgba(56,217,154,.12); }
+    .btn-step { border-radius:10px; background:rgba(5,13,23,.48); border-color:rgba(135,166,198,.2); }
+    select, input[type="text"], input[type="number"], input[type="password"], textarea, input[type="date"] {
+      border-radius:11px; border-color:rgba(135,166,198,.2); background:rgba(5,13,23,.58); min-height:39px;
+    }
+    .analytics-metric {
+      border-radius:13px; padding:11px 10px; background:linear-gradient(145deg,rgba(8,19,32,.94),rgba(14,27,43,.94));
+      border-color:rgba(119,163,197,.17);
+    }
+    .analytics-label { font-size:.59rem; letter-spacing:.65px; color:#8fa5ba; }
+    .analytics-value { font-size:1.16rem; letter-spacing:-.35px; color:#f2f9ff; }
+    #analytics-summary-card { border-color:rgba(66,200,255,.19); }
+    .template-card, .trophy-item, .body-record-card, .exercise-manage-card {
+      border-radius:12px; background:rgba(6,15,26,.58); border-color:rgba(135,166,198,.16); padding:10px;
+    }
+    details { border-radius:12px; border-color:rgba(135,166,198,.17); }
+    summary { padding:11px 12px; }
+    .set-item-row { padding:9px 12px; }
+    #rest-timer-widget { border-radius:14px; background:linear-gradient(110deg,rgba(15,49,65,.98),rgba(17,26,41,.98)); border-color:rgba(66,200,255,.38); }
+    nav {
+      margin:0 10px calc(env(safe-area-inset-bottom) + 8px); padding:6px 5px 5px;
+      border:1px solid rgba(135,166,198,.18); border-radius:19px;
+      background:rgba(14,22,35,.96); backdrop-filter:blur(20px);
+      box-shadow:0 10px 30px rgba(0,0,0,.34); gap:2px;
+    }
+    nav button { min-height:48px; border-radius:13px; padding:7px 1px 5px; font-size:.59rem; letter-spacing:.35px; text-transform:none; gap:4px; }
+    nav button svg { width:19px; height:19px; }
+    nav button.active { color:var(--accent); background:rgba(66,200,255,.105); }
+    nav button.active svg { filter:drop-shadow(0 0 5px rgba(66,200,255,.35)); }
+    #settings-modal .modal-card, .modal-card, #exercise-note-modal .note-modal-card, .exercise-group-edit-card {
+      border-radius:20px; border-color:rgba(135,166,198,.2); background:#111b2b;
+    }
+    .version-info { opacity:.72; }
+    button, .card, .analytics-metric, nav { -webkit-tap-highlight-color:transparent; }
+    button:active { transform:translateY(1px); }
+    @media (prefers-reduced-motion:no-preference) {
+      .card, .analytics-metric, .template-card { animation:premium-rise .28s ease both; }
+      @keyframes premium-rise { from { opacity:.88; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+    }
+    @media (max-width:360px) {
+      .container { padding-left:9px; padding-right:9px; }
+      nav { margin-left:7px; margin-right:7px; }
+      nav button { font-size:.55rem; }
+      .analytics-value { font-size:1.02rem; }
+    }
+    /* Альтернативные темы остаются доступными пользователю, но используют новую геометрию компонентов. */
+    [data-theme="emerald-luxe"] .card, [data-theme="white-clean"] .card,
+    [data-theme="obsidian-gold"] .card, [data-theme="deep-amethyst"] .card,
+    [data-theme="cyberpunk-red"] .card { border-radius:17px; }
+
   </style>
 </head>
 <body data-theme="midnight-neon">
@@ -644,7 +753,7 @@
           <div id="backup-status" role="status" style="font-size:.7rem;color:var(--text-muted);margin-top:7px;"></div>
         </div>
       </div>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.47</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.48</div>
     </div>
   </div>
   <div id="exercise-group-edit-modal" class="exercise-group-edit-modal" onclick="if(event.target===this)closeExerciseGroupEditor()">
@@ -1063,7 +1172,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.47";
+    const APP_VERSION = "v1.0.49";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -3507,19 +3616,27 @@
         }
         const previous = {};
         keysToReplace.forEach(key => { previous[key] = localStorage.getItem(key); });
+        const rollbackBackupRestore = async () => {
+          Object.entries(previous).forEach(([key, value]) => {
+            try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }
+            catch (rollbackError) { console.error('Ошибка отката восстановления резервной копии:', rollbackError); }
+          });
+          dataLoadFailed = false;
+          const restoredPreviousData = await loadData();
+          if (!restoredPreviousData) console.error('Не удалось повторно загрузить данные после отката восстановления.');
+        };
         try {
           keysToReplace.forEach(key => {
             if (Object.prototype.hasOwnProperty.call(mapped, key)) localStorage.setItem(key, mapped[key]);
             else localStorage.removeItem(key);
           });
-        } catch (writeError) {
-          Object.entries(previous).forEach(([key, value]) => {
-            try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch (rollbackError) { console.error('Rollback error:', rollbackError); }
-          });
-          throw writeError;
+          dataLoadFailed = false;
+          const loaded = await loadData();
+          if (!loaded) throw new Error('Проверка после восстановления не пройдена. Предыдущие данные возвращены.');
+        } catch (restoreError) {
+          await rollbackBackupRestore();
+          throw restoreError;
         }
-        dataLoadFailed = false;
-        await loadData();
         initOrUpdateCalendar();
         loadTodayKBDZData();
         setBackupStatus(`Готово: восстановлено ${count} разделов/дней. Приложение обновлено.`);
