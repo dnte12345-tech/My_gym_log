@@ -571,7 +571,7 @@
     #input-weight, #input-reps, #cal-add-weight, #cal-add-reps { scroll-margin-top: 24px; scroll-margin-bottom: 180px; }
 
 
-    /* Lift Lab Premium Dashboard — v1.0.49. Визуальный слой без изменения логики и схем данных. */
+    /* Lift Lab Premium Dashboard — v1.0.50. Визуальный слой без изменения логики и схем данных. */
     :root {
       --bg-color: #080d16;
       --card-bg: #111a29;
@@ -607,6 +607,16 @@
       background:linear-gradient(145deg, rgba(23,35,53,.98), rgba(14,23,37,.98));
       border:1px solid rgba(135,166,198,.15);
       box-shadow:0 8px 24px rgba(0,0,0,.17), inset 0 1px 0 rgba(255,255,255,.025);
+    }
+    /* Исправление v1.0.50: прокручиваемые карточки должны сохранять вертикальный overflow.
+       Базовый .card задаёт overflow:hidden для декоративных эффектов и иначе перекрывает .card-scrollable. */
+    .card.card-scrollable {
+      flex:1 1 0;
+      min-height:0;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior-y:contain;
     }
     .card h2 { font-size:.78rem; letter-spacing:.9px; color:#c8d8e8; margin-bottom:9px; }
     #tab-workout > .card:first-child {
@@ -1172,7 +1182,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.49";
+    const APP_VERSION = "v1.0.50";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
