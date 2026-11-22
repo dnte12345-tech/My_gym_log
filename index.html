@@ -497,20 +497,22 @@
     }
 
 
-    /* Наглядная карта мышц для упражнений и шаблонов. */
+    .analytics-period-switch { display:flex; gap:3px; width:100%; }
+    .analytics-period-switch button { flex:1; min-width:0; padding:5px 2px; font-size:.62rem; white-space:nowrap; }
+
+    /* Реалистичная анатомическая карта мышц для упражнений и шаблонов. */
     .muscle-map-panel { display:flex; align-items:center; gap:8px; min-width:0; margin:6px 0; padding:7px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); }
-    .muscle-map-svg { width:92px; height:104px; flex:0 0 92px; }
+    .muscle-map-art { position:relative; width:142px; flex:0 0 142px; overflow:hidden; border-radius:6px; background:#11151c; line-height:0; }
+    .muscle-map-art img { display:block; width:100%; height:auto; }
+    .muscle-map-highlight { position:absolute; inset:0; pointer-events:none; opacity:.72; mix-blend-mode:screen; }
     .muscle-map-panel.compact { padding:2px; margin:0; gap:0; flex:0 0 70px; }
-    .muscle-map-panel.compact .muscle-map-svg { width:66px; height:78px; flex-basis:66px; }
+    .muscle-map-panel.compact .muscle-map-art { width:66px; flex-basis:66px; }
     .muscle-map-panel.compact .muscle-map-caption { display:none; }
     .muscle-map-caption { min-width:0; display:flex; flex-direction:column; gap:4px; }
     .muscle-map-heading { color:var(--text-muted); font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
     .muscle-chip-list { display:flex; flex-wrap:wrap; gap:4px; }
     .muscle-chip { display:inline-flex; align-items:center; border:1px solid var(--border-color); border-radius:12px; padding:3px 6px; color:var(--text-main); font-size:.62rem; line-height:1.2; }
     .muscle-chip.primary { border-color:var(--accent); color:var(--accent); font-weight:800; }
-    .muscle-map-figure { fill:var(--border-color); opacity:.72; }
-    .muscle-zone { fill:var(--border-color); stroke:var(--card-bg); stroke-width:.8; opacity:.9; }
-    .muscle-zone.active { fill:var(--accent); opacity:1; }
     .template-muscle-summary { margin:7px 0 9px; }
     .template-exercise-muscles { display:block; margin-top:2px; color:var(--text-muted); font-size:.62rem; }
     .exercise-manage-card { display:flex; align-items:center; gap:7px; padding:7px; margin-bottom:5px; border-radius:7px; background:var(--bg-color); border:1px solid var(--border-color); }
@@ -607,7 +609,7 @@
         Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
       </div>
       <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.36</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.43</div>
     </div>
   </div>
 
@@ -731,9 +733,11 @@
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <h2 style="margin-bottom:0;">Аналитика</h2>
-            <div style="display:flex; gap:4px; width: 120px;">
-              <button id="filter-week" class="btn-primary" onclick="setFilter('week')" style="padding: 4px; font-size: 0.7rem;">Неделя</button>
-              <button id="filter-month" class="btn-step" onclick="setFilter('month')" style="padding: 4px; font-size: 0.7rem;">Месяц</button>
+            <div class="analytics-period-switch" role="group" aria-label="Период аналитики">
+              <button id="filter-7d" class="btn-primary" onclick="setFilter('7d')">7 дн.</button>
+              <button id="filter-30d" class="btn-step" onclick="setFilter('30d')">30 дн.</button>
+              <button id="filter-90d" class="btn-step" onclick="setFilter('90d')">90 дн.</button>
+              <button id="filter-365d" class="btn-step" onclick="setFilter('365d')">365 дн.</button>
             </div>
           </div>
           <label for="progress-exercise-select">Упражнение / Метрика</label>
@@ -763,7 +767,7 @@
               <div class="analytics-change" id="analytics-average-change">—</div>
             </div>
           </div>
-          <div style="font-size:0.62rem; color:var(--text-muted); margin-top:7px; text-align:right;">Сравнение с предыдущим таким же периодом</div>
+          <div style="font-size:0.62rem; color:var(--text-muted); margin-top:7px; text-align:right;">Сравнение с предыдущим периодом той же длительности</div>
         </div>
 
         <!-- Визуализация мышечных групп -->
@@ -1007,7 +1011,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.42";
+    const APP_VERSION = "v1.0.43";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -2234,34 +2238,22 @@
 
     function renderMuscleMap(groups, compact=false, showPrimary=true) {
       const active = new Set((groups || []).filter(g => g && g !== 'Другое'));
-      const on = group => active.has(group) ? 'active' : '';
       const chips = [...active].map(group => `<span class="muscle-chip ${showPrimary && group === (groups || [])[0] ? 'primary' : ''}">${showPrimary && group === (groups || [])[0] ? 'Основная: ' : ''}${group}</span>`).join('');
+      const highlights = [];
+      const glow = (x,y,rx,ry) => `radial-gradient(ellipse ${rx}% ${ry}% at ${x}% ${y}%, var(--accent) 0%, transparent 76%)`;
+      if (active.has('Грудь')) highlights.push(glow(30.5,22,10,7));
+      if (active.has('Плечи')) highlights.push(glow(22,21,7,6),glow(39,21,7,6),glow(68,22,8,7),glow(82,22,8,7));
+      if (active.has('Спина')) highlights.push(glow(69.5,31,12,16),glow(77,31,12,16));
+      if (active.has('Руки')) highlights.push(glow(21,31,6,12),glow(41,31,6,12),glow(67,33,6,12),glow(83,33,6,12));
+      if (active.has('Пресс')) highlights.push(glow(30.5,34,7,11));
+      if (active.has('Ноги / Ягодицы')) highlights.push(glow(28,57,8,15),glow(36,57,8,15),glow(69,48,8,8),glow(77,48,8,8),glow(69,65,7,12),glow(77,65,7,12),glow(69,82,5,9),glow(77,82,5,9));
+      const highlightStyle = highlights.length ? `background:${highlights.join(',')};` : '';
       return `<div class="muscle-map-panel ${compact ? 'compact' : ''}">
-        <svg class="muscle-map-svg" viewBox="0 0 120 150" role="img" aria-label="Карта задействованных групп мышц">
-          <g transform="translate(2 2)">
-            <text x="27" y="9" text-anchor="middle" font-size="6" fill="currentColor">Спереди</text>
-            <circle class="muscle-map-figure" cx="27" cy="20" r="8"/>
-            <path class="muscle-map-figure" d="M17 30 Q27 26 37 30 L42 58 L36 67 L35 94 L30 94 L27 69 L24 94 L19 94 L18 67 L12 58 Z"/>
-            <path class="muscle-map-figure" d="M14 32 L7 62 L11 65 L20 43 M40 32 L47 62 L43 65 L34 43 M19 92 L16 130 L22 131 L27 99 L32 131 L38 130 L35 92"/>
-            <ellipse class="muscle-zone ${on('Плечи')}" cx="14" cy="34" rx="5" ry="7"/><ellipse class="muscle-zone ${on('Плечи')}" cx="40" cy="34" rx="5" ry="7"/>
-            <ellipse class="muscle-zone ${on('Грудь')}" cx="22" cy="43" rx="6" ry="5"/><ellipse class="muscle-zone ${on('Грудь')}" cx="32" cy="43" rx="6" ry="5"/>
-            <rect class="muscle-zone ${on('Пресс')}" x="23" y="49" width="8" height="15" rx="3"/>
-            <path class="muscle-zone ${on('Руки')}" d="M8 42 L13 42 L10 62 L7 62 Z M41 42 L46 42 L47 62 L44 62 Z"/>
-            <path class="muscle-zone ${on('Ноги / Ягодицы')}" d="M18 68 L26 68 L22 94 L17 126 L13 126 L16 92 Z M28 68 L36 68 L38 92 L41 126 L36 126 L32 94 Z"/>
-          </g>
-          <g transform="translate(61 2)">
-            <text x="27" y="9" text-anchor="middle" font-size="6" fill="currentColor">Сзади</text>
-            <circle class="muscle-map-figure" cx="27" cy="20" r="8"/>
-            <path class="muscle-map-figure" d="M17 30 Q27 26 37 30 L42 58 L36 67 L35 94 L30 94 L27 69 L24 94 L19 94 L18 67 L12 58 Z"/>
-            <path class="muscle-map-figure" d="M14 32 L7 62 L11 65 L20 43 M40 32 L47 62 L43 65 L34 43 M19 92 L16 130 L22 131 L27 99 L32 131 L38 130 L35 92"/>
-            <ellipse class="muscle-zone ${on('Плечи')}" cx="14" cy="34" rx="5" ry="7"/><ellipse class="muscle-zone ${on('Плечи')}" cx="40" cy="34" rx="5" ry="7"/>
-            <path class="muscle-zone ${on('Спина')}" d="M18 35 Q27 30 36 35 L34 58 L27 64 L20 58 Z"/>
-            <ellipse class="muscle-zone ${on('Ноги / Ягодицы')}" cx="22" cy="66" rx="6" ry="7"/><ellipse class="muscle-zone ${on('Ноги / Ягодицы')}" cx="32" cy="66" rx="6" ry="7"/>
-            <path class="muscle-zone ${on('Руки')}" d="M8 42 L13 42 L10 62 L7 62 Z M41 42 L46 42 L47 62 L44 62 Z"/>
-            <path class="muscle-zone ${on('Ноги / Ягодицы')}" d="M18 72 L26 72 L22 94 L17 126 L13 126 L16 92 Z M28 72 L36 72 L38 92 L41 126 L36 126 L32 94 Z"/>
-          </g>
-        </svg>
-        <div class="muscle-map-caption"><span class="muscle-map-heading">Задействованные мышцы</span><div class="muscle-chip-list">${chips || '<span class="muscle-chip">Группа не назначена</span>'}</div><span style="font-size:.58rem;color:var(--text-muted);">Подсветка показывает основную и вспомогательные группы</span></div>
+        <div class="muscle-map-art">
+          <img src="./muscle-anatomy.webp" alt="Анатомическая схема мышц: вид спереди и сзади" loading="lazy">
+          <div class="muscle-map-highlight" style="${highlightStyle}"></div>
+        </div>
+        <div class="muscle-map-caption"><span class="muscle-map-heading">Задействованные мышцы</span><div class="muscle-chip-list">${chips || '<span class="muscle-chip">Группа не назначена</span>'}</div><span style="font-size:.58rem;color:var(--text-muted);">Подсветка цветом показывает задействованные области</span></div>
       </div>`;
     }
 
@@ -2638,8 +2630,11 @@
       container.innerHTML = '';
       exercisesWithLogs.forEach(ex => {
         const logs = workoutLogs.filter(l => l.exercise === ex && l.setType !== 'WARMUP');
-        const maxWeight = Math.max(...logs.map(l => l.weight));
-        const max1RM = Math.max(...logs.map(l => calculate1RM(l.weight, l.reps)));
+        const bestWeightLog = logs.reduce((best, log) => !best || Number(log.weight) > Number(best.weight) ? log : best, null);
+        const best1RMLog = logs.reduce((best, log) => !best || calculate1RM(log.weight, log.reps) > calculate1RM(best.weight, best.reps) ? log : best, null);
+        const maxWeight = Number(bestWeightLog?.weight) || 0;
+        const max1RM = best1RMLog ? calculate1RM(best1RMLog.weight, best1RMLog.reps) : 0;
+        const dateLabel = key => key ? dateFromKey(key).toLocaleDateString('ru-RU', {day:'numeric',month:'short',year:'numeric'}) : '—';
 
         const item = document.createElement('div');
         item.className = 'trophy-item';
@@ -2649,8 +2644,10 @@
             <div style="font-size: 0.7rem; color: var(--text-muted);">Рабочих сетов: ${logs.length}</div>
           </div>
           <div style="text-align: right;">
-            <div><span style="color: var(--text-muted); font-size: 0.65rem;">MAX:</span> <strong style="color: var(--accent);">${maxWeight} кг</strong></div>
-            <div><span style="color: var(--text-muted); font-size: 0.65rem;">1RM:</span> <strong style="color: var(--accent-green);">${max1RM} кг</strong></div>
+            <div><span style="color: var(--text-muted); font-size: 0.65rem;">MAX:</span> <strong style="color: var(--accent);">${formatMetricNumber(maxWeight)} кг</strong></div>
+            <div style="font-size:.58rem;color:var(--text-muted);">${dateLabel(bestWeightLog?.dateStr)}</div>
+            <div><span style="color: var(--text-muted); font-size: 0.65rem;">1RM:</span> <strong style="color: var(--accent-green);">${formatMetricNumber(max1RM)} кг</strong></div>
+            <div style="font-size:.58rem;color:var(--text-muted);">${dateLabel(best1RMLog?.dateStr)}</div>
           </div>
         `;
         container.appendChild(item);
@@ -2658,23 +2655,15 @@
     }
 
     let chartInstance = null;
-    let currentFilter = 'week';
+    let currentFilter = '7d';
 
     function setFilter(filter) {
       triggerHaptic();
-      currentFilter = filter;
-      const weekBtn = document.getElementById('filter-week');
-      const monthBtn = document.getElementById('filter-month');
-      
-      if (weekBtn && monthBtn) {
-        if (filter === 'week') {
-          weekBtn.className = 'btn-primary';
-          monthBtn.className = 'btn-step';
-        } else {
-          weekBtn.className = 'btn-step';
-          monthBtn.className = 'btn-primary';
-        }
-      }
+      currentFilter = ['7d','30d','90d','365d'].includes(filter) ? filter : '7d';
+      ['7d','30d','90d','365d'].forEach(key => {
+        const button = document.getElementById(`filter-${key}`);
+        if (button) button.className = currentFilter === key ? 'btn-primary' : 'btn-step';
+      });
       updateChart();
     }
 
@@ -2692,7 +2681,7 @@
     }
 
     function getAnalyticsPeriods() {
-      const days = currentFilter === 'week' ? 7 : 30;
+      const days = ({'7d':7,'30d':30,'90d':90,'365d':365})[currentFilter] || 7;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const currentStart = new Date(today);
@@ -2764,63 +2753,43 @@
       });
     }
 
-    // Рендер распределения по группам мышц (Исправлен расчет нуля v1.0.36)
+    // Распределение нагрузки: основной группе засчитывается 1 подход, вспомогательной — 0,5.
     function renderMuscleGroupsDistribution() {
       const container = document.getElementById('muscle-groups-distribution');
       if (!container) return;
-
       const period = getAnalyticsPeriods();
-      const weeklyLogs = workoutLogs.filter(log => log.dateStr >= period.currentStart && log.dateStr < period.currentEnd && log.setType !== 'WARMUP');
-
-      if (weeklyLogs.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За выбранный период подходов не зафиксировано (0%).</p>';
+      const periodLogs = workoutLogs.filter(log => log.dateStr >= period.currentStart && log.dateStr < period.currentEnd && log.setType !== 'WARMUP');
+      if (periodLogs.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За выбранный период рабочих подходов не зафиксировано.</p>';
         return;
       }
-
-      const muscleCounts = {
-        "Спина": 0, "Ноги / Ягодицы": 0, "Плечи": 0, "Грудь": 0, "Руки": 0, "Пресс": 0, "Другое": 0
-      };
-
-      weeklyLogs.forEach(log => {
-        let group = exerciseGroups[log.exercise] || '';
-        if (!group) {
-          for (const [legacyGroup, exList] of Object.entries(muscleMap)) {
-            if (exList.includes(log.exercise)) { group = legacyGroup; break; }
-          }
-        }
-        if (!group || !(group in muscleCounts)) group = 'Другое';
-        muscleCounts[group]++;
+      const muscleCounts = {"Спина":0,"Ноги / Ягодицы":0,"Плечи":0,"Грудь":0,"Руки":0,"Пресс":0,"Другое":0};
+      periodLogs.forEach(log => {
+        const muscles = getExerciseMuscles(log.exercise);
+        const primary = muscles.primary in muscleCounts ? muscles.primary : 'Другое';
+        muscleCounts[primary] += 1;
+        muscles.all.filter(group => group !== primary).forEach(group => {
+          muscleCounts[group in muscleCounts ? group : 'Другое'] += 0.5;
+        });
       });
-
-      const totalSets = Object.values(muscleCounts).reduce((a, b) => a + b, 0);
-
-      if (totalSets === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem;">За выбранный период подходов не зафиксировано (0%).</p>';
-        return;
-      }
-
+      const total = Object.values(muscleCounts).reduce((sum,value)=>sum+value,0);
       container.innerHTML = '';
-      Object.entries(muscleCounts).forEach(([group, count]) => {
-        if (count > 0) {
-          const percent = Math.round((count / totalSets) * 100);
-          const item = document.createElement('div');
-          item.className = 'muscle-bar-item';
-          item.innerHTML = `
-            <div class="muscle-bar-header">
-              <span>${group}</span>
-              <span style="color: var(--accent);">${count} подх. (${percent}%)</span>
-            </div>
-            <div class="muscle-bar-bg">
-              <div class="muscle-bar-fill" style="width: ${percent}%;"></div>
-            </div>
-          `;
-          container.appendChild(item);
-        }
+      Object.entries(muscleCounts).filter(([,count])=>count>0).sort((a,b)=>b[1]-a[1]).forEach(([group,count]) => {
+        const percent = total ? Math.round(count/total*100) : 0;
+        const item = document.createElement('div');
+        item.className = 'muscle-bar-item';
+        item.innerHTML = `<div class="muscle-bar-header"><span>${group}</span><span style="color:var(--accent);">${count.toLocaleString('ru-RU',{maximumFractionDigits:1})} экв. (${percent}%)</span></div><div class="muscle-bar-bg"><div class="muscle-bar-fill" style="width:${percent}%;"></div></div>`;
+        container.appendChild(item);
       });
+      const note = document.createElement('div');
+      note.style.cssText='font-size:.58rem;color:var(--text-muted);margin-top:5px;';
+      note.textContent='Основная мышечная группа = 1 подход, вспомогательная = 0,5. Это ориентировочная оценка распределения нагрузки.';
+      container.appendChild(note);
     }
 
     function updateChart() {
-      if (typeof Chart === 'undefined') return;
+      renderAnalyticsSummary();
+      renderMuscleGroupsDistribution();
       const select = document.getElementById('progress-exercise-select');
       if (!select) return;
       const selected = select.value;
@@ -2828,10 +2797,19 @@
       const filteredLogs = workoutLogs.filter(log =>
         log.dateStr >= period.currentStart && log.dateStr < period.currentEnd
       );
-
-      renderAnalyticsSummary();
-      renderMuscleGroupsDistribution();
-
+      if (typeof Chart === 'undefined') {
+        const canvas = document.getElementById('progressChart');
+        if (canvas) {
+          canvas.style.display = 'none';
+          let fallback = document.getElementById('chart-library-fallback');
+          if (!fallback) { fallback = document.createElement('p'); fallback.id='chart-library-fallback'; fallback.style.cssText='font-size:.72rem;color:var(--text-muted);padding:12px;text-align:center;'; canvas.parentElement.appendChild(fallback); }
+          fallback.textContent = 'График временно недоступен: не загрузилась библиотека диаграмм. Сводные показатели рассчитаны.';
+        }
+        return;
+      }
+      const canvas = document.getElementById('progressChart');
+      if (canvas) canvas.style.display = 'block';
+      document.getElementById('chart-library-fallback')?.remove();
       const prContainer = document.getElementById('pr-card-container');
       const chartCanvas = document.getElementById('progressChart');
       if (!chartCanvas) return;
@@ -2842,16 +2820,28 @@
         if (prContainer) prContainer.style.display = 'none';
         const tonnageByDate = {};
         filteredLogs.forEach(log => {
-          if (log.setType !== 'WARMUP') {
-            tonnageByDate[log.dateStr] = (tonnageByDate[log.dateStr] || 0)
-              + ((Number(log.weight) || 0) * (Number(log.reps) || 0));
+          if (log.setType === 'WARMUP') return;
+          const date = dateFromKey(log.dateStr);
+          if (Number.isNaN(date.getTime())) return;
+          let bucket = log.dateStr;
+          if (period.days > 30 && period.days <= 90) {
+            const monday = new Date(date); monday.setDate(date.getDate() - ((date.getDay()+6)%7));
+            bucket = dateKey(monday);
+          } else if (period.days > 90) {
+            bucket = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-01`;
           }
+          tonnageByDate[bucket] = (tonnageByDate[bucket] || 0) + ((Number(log.weight) || 0) * (Number(log.reps) || 0));
         });
 
         const sortedDates = Object.keys(tonnageByDate).sort();
-        const labels = sortedDates.map(key =>
-          dateFromKey(key).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
-        );
+        const labels = sortedDates.map(key => {
+          const date = dateFromKey(key);
+          return period.days > 90
+            ? date.toLocaleDateString('ru-RU', { month:'short', year:'2-digit' })
+            : period.days > 30
+              ? `Нед. ${date.toLocaleDateString('ru-RU', { day:'numeric', month:'short' })}`
+              : date.toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
+        });
         const data = sortedDates.map(key => Math.round(tonnageByDate[key]));
 
         chartInstance = new Chart(ctx, {
