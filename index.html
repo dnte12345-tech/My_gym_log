@@ -500,24 +500,35 @@
     .analytics-period-switch { display:flex; gap:3px; width:100%; }
     .analytics-period-switch button { flex:1; min-width:0; padding:5px 2px; font-size:.62rem; white-space:nowrap; }
 
-    /* Реалистичная анатомическая карта мышц для упражнений и шаблонов. */
+    /* Компактная схематичная карта тела без прорисовки мышц. */
     .muscle-map-panel { display:flex; align-items:center; gap:8px; min-width:0; margin:6px 0; padding:7px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); }
     .muscle-map-art { position:relative; width:142px; flex:0 0 142px; overflow:hidden; border-radius:6px; background:#11151c; line-height:0; }
-    .muscle-map-art img { display:block; width:100%; height:auto; }
-    .muscle-map-highlight { position:absolute; inset:0; pointer-events:none; opacity:.72; mix-blend-mode:screen; }
-    .muscle-map-panel.compact { padding:2px; margin:0; gap:0; flex:0 0 70px; }
-    .muscle-map-panel.compact .muscle-map-art { width:66px; flex-basis:66px; }
+    .muscle-map-art svg { display:block; width:100%; height:auto; }
+    .muscle-map-panel.compact { padding:2px; margin:0; gap:0; flex:0 0 54px; }
+    .muscle-map-panel.compact .muscle-map-art { width:52px; flex-basis:52px; }
     .muscle-map-panel.compact .muscle-map-caption { display:none; }
     .muscle-map-caption { min-width:0; display:flex; flex-direction:column; gap:4px; }
     .muscle-map-heading { color:var(--text-muted); font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
     .muscle-chip-list { display:flex; flex-wrap:wrap; gap:4px; }
     .muscle-chip { display:inline-flex; align-items:center; border:1px solid var(--border-color); border-radius:12px; padding:3px 6px; color:var(--text-main); font-size:.62rem; line-height:1.2; }
-    .muscle-chip.primary { border-color:var(--accent); color:var(--accent); font-weight:800; }
+    .muscle-chip.primary { border-color:#ef4444; color:#ef4444; font-weight:800; }
     .template-muscle-summary { margin:7px 0 9px; }
     .template-exercise-muscles { display:block; margin-top:2px; color:var(--text-muted); font-size:.62rem; }
-    .exercise-manage-card { display:flex; align-items:center; gap:7px; padding:7px; margin-bottom:5px; border-radius:7px; background:var(--bg-color); border:1px solid var(--border-color); }
-    .exercise-manage-main { flex:1; min-width:0; font-size:.76rem; }
-    .exercise-manage-actions { display:flex; flex-direction:column; gap:4px; flex:0 0 auto; }
+    .exercise-manage-card { display:flex; align-items:center; gap:6px; padding:6px 7px; margin-bottom:4px; border-radius:7px; background:var(--bg-color); border:1px solid var(--border-color); }
+    .exercise-manage-main { flex:1; min-width:0; font-size:.72rem; }
+    .exercise-manage-actions { display:flex; flex-direction:row; gap:4px; flex:0 0 auto; }
+    .settings-tabs,.exercise-list-tabs { display:flex; gap:5px; margin:0 0 10px; }
+    .settings-tabs button,.exercise-list-tabs button { flex:1; min-width:0; padding:8px 4px; font-size:.72rem; }
+    .settings-pane { display:none; }
+    .settings-pane.active { display:block; }
+    .exercise-list-pane { display:none; }
+    .exercise-list-pane.active { display:block; }
+    .exercise-list-scroll { max-height:230px; overflow-y:auto; background:var(--bg-color); border:1px solid var(--border-color); border-radius:8px; padding:4px; }
+    .exercise-add-row { display:grid; grid-template-columns:minmax(0,1fr) 118px; gap:6px; margin-bottom:7px; }
+    .exercise-add-row button { grid-column:1 / -1; width:100%; }
+    .exercise-group-edit-modal { position:fixed; inset:0; z-index:10020; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.72); }
+    .exercise-group-edit-modal.active { display:flex; }
+    .exercise-group-edit-card { width:100%; max-width:330px; padding:16px; border:1px solid var(--border-color); border-radius:14px; background:var(--card-bg); }
 
     .version-info {
       text-align: center;
@@ -567,49 +578,58 @@
     </div>
   </div>
 
-  <!-- Модальное окно настроек -->
+  <!-- Модальное окно настроек с отдельными разделами -->
   <div id="settings-modal">
     <div class="modal-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h2 style="color: var(--accent);">Настройки</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h2 style="color:var(--accent);">Настройки</h2>
         <button class="btn-close" onclick="toggleSettingsModal()">&times;</button>
       </div>
-
-      <div style="margin-bottom: 12px;">
-        <label>🎨 Премиум тема оформления</label>
+      <div class="settings-tabs">
+        <button id="settings-tab-appearance" class="btn-primary" onclick="switchSettingsPane('appearance')">Оформление</button>
+        <button id="settings-tab-exercises" class="btn-step" onclick="switchSettingsPane('exercises')">Упражнения</button>
+        <button id="settings-tab-backup" class="btn-step" onclick="switchSettingsPane('backup')">Бэкап</button>
+      </div>
+      <div id="settings-pane-appearance" class="settings-pane active">
+        <label>🎨 Тема оформления</label>
         <select id="theme-selector" onchange="changeTheme(this.value)">
-          <option value="midnight-neon">🌌 Midnight Neon (Тёмно-синий неоновый)</option>
-          <option value="emerald-luxe">🌿 Emerald Clean (Чистый изумруд)</option>
-          <option value="white-clean">☀️ White Clean (Светлая)</option>
-          <option value="obsidian-gold">👑 Obsidian Gold (Черный с золотом)</option>
-          <option value="deep-amethyst">🔮 Deep Amethyst (Королевский пурпур)</option>
-          <option value="cyberpunk-red">🔥 Cyberpunk Red (Угольный алый)</option>
+          <option value="midnight-neon">🌌 Midnight Neon</option><option value="emerald-luxe">🌿 Emerald Clean</option><option value="white-clean">☀️ White Clean</option><option value="obsidian-gold">👑 Obsidian Gold</option><option value="deep-amethyst">🔮 Deep Amethyst</option><option value="cyberpunk-red">🔥 Cyberpunk Red</option>
         </select>
+        <div style="font-size:.68rem;color:var(--text-muted);text-align:center;margin:12px 0;">Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.</div>
+        <button style="background:var(--danger);color:#fff;width:100%;" onclick="logout()">Выйти из системы</button>
       </div>
-
-      <div style="margin-bottom: 12px;">
-        <label>База тренажеров</label>
-        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-          <input type="text" id="new-exercise-name" placeholder="Новое упражнение" style="margin-bottom: 0;">
-          <select id="new-exercise-group" style="max-width:135px;margin-bottom:0;font-size:0.72rem;"><option value="Грудь">Грудь</option><option value="Спина">Спина</option><option value="Плечи">Плечи</option><option value="Руки">Руки</option><option value="Ноги / Ягодицы">Ноги / Ягодицы</option><option value="Пресс">Пресс</option><option value="Другое">Другое</option></select>
-          <button class="btn-success" onclick="addNewExercise()" style="width: 90px; flex-shrink: 0; font-size: 0.75rem;">+ Добавить</button>
+      <div id="settings-pane-exercises" class="settings-pane">
+        <label>Добавить упражнение</label>
+        <div class="exercise-add-row">
+          <input type="text" id="new-exercise-name" placeholder="Название упражнения" style="margin:0;">
+          <select id="new-exercise-group" style="margin:0;font-size:.72rem;"><option value="Грудь">Грудь</option><option value="Спина">Спина</option><option value="Плечи">Плечи</option><option value="Руки">Руки</option><option value="Ноги / Ягодицы">Ноги / Ягодицы</option><option value="Пресс">Пресс</option><option value="Другое">Другое</option></select>
+          <button class="btn-success" onclick="addNewExercise()">+ Добавить упражнение</button>
         </div>
-        <div id="exercise-list-manage" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px;"></div>
+        <div class="exercise-list-tabs">
+          <button id="exercise-list-tab-active" class="btn-primary" onclick="switchExerciseListPane('active')">Активные</button>
+          <button id="exercise-list-tab-archived" class="btn-step" onclick="switchExerciseListPane('archived')">Архив</button>
+        </div>
+        <div class="exercise-list-scroll"><div id="exercise-list-manage"></div></div>
       </div>
-
-      <div class="card" style="margin: 12px 0; padding: 12px;">
-        <h3 style="color:var(--accent); margin-bottom:6px; font-size:0.9rem;">🛡️ Резервная копия</h3>
-        <p style="font-size:0.72rem; color:var(--text-muted); line-height:1.4; margin-bottom:9px;">Сохраните текстовый файл (.txt) через системное меню iOS «Сохранить в Файлы».</p>
-        <button class="btn-success" style="margin-bottom:7px;" onclick="exportBackup()">⬇️ Сохранить бэкап (iOS Share)</button>
-        <button class="btn-step" onclick="document.getElementById('backup-file-input').click()">⬆️ Восстановить из файла</button>
-        <input id="backup-file-input" type="file" accept=".txt,.json,text/plain,application/json" style="display:none" onchange="importBackupFromFile(this)">
-        <div id="backup-status" role="status" style="font-size:0.7rem; color:var(--text-muted); margin-top:7px;"></div>
+      <div id="settings-pane-backup" class="settings-pane">
+        <div class="card" style="margin:0;padding:12px;">
+          <h3 style="color:var(--accent);margin-bottom:6px;font-size:.9rem;">🛡️ Резервная копия</h3>
+          <p style="font-size:.72rem;color:var(--text-muted);line-height:1.4;margin-bottom:9px;">Сохраните текстовый файл (.txt) через системное меню iOS «Сохранить в Файлы».</p>
+          <button class="btn-success" style="margin-bottom:7px;" onclick="exportBackup()">⬇️ Сохранить резервную копию</button>
+          <button class="btn-step" onclick="document.getElementById('backup-file-input').click()">⬆️ Восстановить из файла</button>
+          <input id="backup-file-input" type="file" accept=".txt,.json,text/plain,application/json" style="display:none" onchange="importBackupFromFile(this)">
+          <div id="backup-status" role="status" style="font-size:.7rem;color:var(--text-muted);margin-top:7px;"></div>
+        </div>
       </div>
-      <div style="font-size: 0.68rem; color: var(--text-muted); text-align: center; margin: 8px 0;">
-        Данные сохраняются локально на этом устройстве. Облачной синхронизации нет.
-      </div>
-      <button style="background: var(--danger); color: #fff; margin-bottom: 10px;" onclick="logout()">Выйти из системы</button>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.43</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.44</div>
+    </div>
+  </div>
+  <div id="exercise-group-edit-modal" class="exercise-group-edit-modal" onclick="if(event.target===this)closeExerciseGroupEditor()">
+    <div class="exercise-group-edit-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><strong>Группа мышц</strong><button class="btn-close" onclick="closeExerciseGroupEditor()">×</button></div>
+      <div id="exercise-group-edit-name" style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px;"></div>
+      <select id="exercise-group-edit-select"><option>Грудь</option><option>Спина</option><option>Плечи</option><option>Руки</option><option>Ноги / Ягодицы</option><option>Пресс</option><option>Другое</option></select>
+      <div style="display:flex;gap:7px;margin-top:10px;"><button class="btn-step" style="flex:1" onclick="closeExerciseGroupEditor()">Отмена</button><button class="btn-primary" style="flex:1" onclick="saveExerciseGroupEditor()">Сохранить</button></div>
     </div>
   </div>
 
@@ -844,7 +864,7 @@
             <div class="row" style="margin-top:10px; margin-bottom:4px;">
               <div>
                 <label>Пол</label>
-                <select id="user-gender" onchange="recalculateTDEE()">
+                <select id="user-gender" onchange="onGenderChange(this.value)">
                   <option value="male" selected>Мужской</option>
                   <option value="female">Женский</option>
                 </select>
@@ -1011,7 +1031,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.43";
+    const APP_VERSION = "v1.0.44";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1088,7 +1108,8 @@
       if (modal) {
         modal.classList.toggle('active');
         if (modal.classList.contains('active')) {
-          renderManageList();
+          switchSettingsPane('appearance');
+          switchExerciseListPane('active');
         }
       }
     }
@@ -2237,24 +2258,32 @@
     }
 
     function renderMuscleMap(groups, compact=false, showPrimary=true) {
-      const active = new Set((groups || []).filter(g => g && g !== 'Другое'));
-      const chips = [...active].map(group => `<span class="muscle-chip ${showPrimary && group === (groups || [])[0] ? 'primary' : ''}">${showPrimary && group === (groups || [])[0] ? 'Основная: ' : ''}${group}</span>`).join('');
-      const highlights = [];
-      const glow = (x,y,rx,ry) => `radial-gradient(ellipse ${rx}% ${ry}% at ${x}% ${y}%, var(--accent) 0%, transparent 76%)`;
-      if (active.has('Грудь')) highlights.push(glow(30.5,22,10,7));
-      if (active.has('Плечи')) highlights.push(glow(22,21,7,6),glow(39,21,7,6),glow(68,22,8,7),glow(82,22,8,7));
-      if (active.has('Спина')) highlights.push(glow(69.5,31,12,16),glow(77,31,12,16));
-      if (active.has('Руки')) highlights.push(glow(21,31,6,12),glow(41,31,6,12),glow(67,33,6,12),glow(83,33,6,12));
-      if (active.has('Пресс')) highlights.push(glow(30.5,34,7,11));
-      if (active.has('Ноги / Ягодицы')) highlights.push(glow(28,57,8,15),glow(36,57,8,15),glow(69,48,8,8),glow(77,48,8,8),glow(69,65,7,12),glow(77,65,7,12),glow(69,82,5,9),glow(77,82,5,9));
-      const highlightStyle = highlights.length ? `background:${highlights.join(',')};` : '';
-      return `<div class="muscle-map-panel ${compact ? 'compact' : ''}">
-        <div class="muscle-map-art">
-          <img src="./muscle-anatomy.webp" alt="Анатомическая схема мышц: вид спереди и сзади" loading="lazy">
-          <div class="muscle-map-highlight" style="${highlightStyle}"></div>
-        </div>
-        <div class="muscle-map-caption"><span class="muscle-map-heading">Задействованные мышцы</span><div class="muscle-chip-list">${chips || '<span class="muscle-chip">Группа не назначена</span>'}</div><span style="font-size:.58rem;color:var(--text-muted);">Подсветка цветом показывает задействованные области</span></div>
-      </div>`;
+      const active = [...new Set((groups || []).filter(g => g && g !== 'Другое'))];
+      const primary = active[0];
+      const gender = document.getElementById('user-gender')?.value || localStorage.getItem('lift_lab_body_gender') || 'male';
+      const female = gender === 'female';
+      const chips = active.map(group => `<span class="muscle-chip ${showPrimary && group === primary ? 'primary' : ''}" style="${group===primary?'border-color:#ef4444;color:#ef4444;':'border-color:#3b82f6;color:#60a5fa;'}">${showPrimary && group === primary ? 'Основная: ' : ''}${group}</span>`).join('');
+      const bodyFront = female
+        ? 'M50 8 C43 8 40 13 41 19 L35 25 L29 38 L32 48 L37 44 L39 34 L41 29 L42 48 L39 61 L34 78 L37 88 L42 88 L45 76 L48 61 L50 54 L52 61 L55 76 L58 88 L63 88 L66 78 L61 61 L58 48 L59 29 L61 34 L63 44 L68 48 L71 38 L65 25 L59 19 C60 13 57 8 50 8 Z'
+        : 'M50 8 C43 8 40 13 41 19 L32 23 L25 32 L29 44 L35 42 L38 31 L41 27 L42 49 L38 65 L34 82 L38 90 L43 89 L46 73 L49 57 L51 57 L54 73 L57 89 L62 90 L66 82 L62 65 L58 49 L59 27 L62 31 L65 42 L71 44 L75 32 L68 23 L59 19 C60 13 57 8 50 8 Z';
+      const bodyBack = female
+        ? 'M50 8 C43 8 40 13 41 19 L35 25 L29 38 L32 48 L37 44 L39 34 L41 29 L42 48 L39 61 L34 78 L37 88 L42 88 L45 76 L48 61 L50 54 L52 61 L55 76 L58 88 L63 88 L66 78 L61 61 L58 48 L59 29 L61 34 L63 44 L68 48 L71 38 L65 25 L59 19 C60 13 57 8 50 8 Z'
+        : bodyFront;
+      const areas = {
+        'Грудь': '<ellipse cx="50" cy="29" rx="11" ry="5"/><ellipse cx="150" cy="29" rx="11" ry="5"/>',
+        'Спина': '<ellipse cx="150" cy="31" rx="13" ry="13"/>',
+        'Плечи': '<circle cx="35" cy="25" r="5"/><circle cx="65" cy="25" r="5"/><circle cx="135" cy="25" r="5"/><circle cx="165" cy="25" r="5"/>',
+        'Руки': '<ellipse cx="31" cy="42" rx="4" ry="12"/><ellipse cx="69" cy="42" rx="4" ry="12"/><ellipse cx="131" cy="42" rx="4" ry="12"/><ellipse cx="169" cy="42" rx="4" ry="12"/>',
+        'Пресс': '<rect x="45" y="34" width="10" height="18" rx="5"/><rect x="145" y="34" width="10" height="18" rx="5"/>',
+        'Ноги / Ягодицы': '<ellipse cx="44" cy="67" rx="6" ry="17"/><ellipse cx="56" cy="67" rx="6" ry="17"/><ellipse cx="144" cy="67" rx="6" ry="17"/><ellipse cx="156" cy="67" rx="6" ry="17"/>',
+      };
+      let overlays='';
+      active.forEach((g,i)=>{ if(areas[g]) overlays += `<g fill="${g===primary?'#ef4444':'#3b82f6'}" opacity=".9">${areas[g]}</g>`; });
+      const arms = '<path d="M34 25 Q27 31 27 44 L22 56 Q20 60 23 62 Q26 63 28 58 L34 46 L40 31 M66 25 Q73 31 73 44 L78 56 Q80 60 77 62 Q74 63 72 58 L66 46 L60 31" fill="none" stroke="#aeb8c7" stroke-width="5" stroke-linecap="round"/>';
+      const legs = '<path d="M44 57 Q39 70 39 83 L37 98 Q37 102 42 102 L47 101 L50 60 M56 57 Q61 70 61 83 L63 98 Q63 102 58 102 L53 101 L50 60" fill="none" stroke="#aeb8c7" stroke-width="6" stroke-linecap="round"/>';
+      const figure=(x,path,back=false)=>`<g transform="translate(${x},0)"><circle cx="50" cy="7" r="5.5" fill="#aeb8c7"/><path d="${path}" fill="#aeb8c7" stroke="#d1d9e4" stroke-width=".7"/>${arms}${legs}</g>`;
+      const svg=`<svg viewBox="0 0 200 112" role="img" aria-label="Схематичный силуэт тела ${female?'женский':'мужской'} с подсветкой групп мышц"><rect width="200" height="112" fill="#11151c"/>${figure(0,bodyFront)}${figure(100,bodyBack,true)}<g>${overlays}</g></svg>`;
+      return `<div class="muscle-map-panel ${compact ? 'compact' : ''}"><div class="muscle-map-art">${svg}</div><div class="muscle-map-caption"><span class="muscle-map-heading">Задействованные группы</span><div class="muscle-chip-list">${chips || '<span class="muscle-chip">Группа не назначена</span>'}</div><span style="font-size:.58rem;color:var(--text-muted);"><span style="color:#ef4444">●</span> Основная &nbsp; <span style="color:#3b82f6">●</span> Вспомогательная</span></div></div>`;
     }
 
     function renderTemplateCheckboxes() {
@@ -2407,31 +2436,46 @@
       }
     }
 
+    let exerciseListPane = 'active';
+    let editingExerciseGroupName = null;
+    function switchSettingsPane(name) {
+      ['appearance','exercises','backup'].forEach(key=>{
+        document.getElementById(`settings-pane-${key}`)?.classList.toggle('active',key===name);
+        const btn=document.getElementById(`settings-tab-${key}`); if(btn) btn.className=key===name?'btn-primary':'btn-step';
+      });
+      if(name==='exercises') renderManageList();
+    }
+    function switchExerciseListPane(name) {
+      exerciseListPane=name;
+      document.getElementById('exercise-list-tab-active').className=name==='active'?'btn-primary':'btn-step';
+      document.getElementById('exercise-list-tab-archived').className=name==='archived'?'btn-primary':'btn-step';
+      renderManageList();
+    }
     function renderManageList() {
-      const container = document.getElementById('exercise-list-manage');
-      if (!container) return;
-      container.innerHTML = '';
-      const active = exercises.filter(ex => !archivedExercises.includes(ex));
-      const archived = exercises.filter(ex => archivedExercises.includes(ex));
-      const heading = (label) => { const h=document.createElement('div'); h.style.cssText='font-size:0.7rem;font-weight:800;color:var(--text-muted);padding:5px 3px;'; h.textContent=label; container.appendChild(h); };
-      heading('АКТИВНЫЕ УПРАЖНЕНИЯ');
-      active.forEach(ex => {
+      const container=document.getElementById('exercise-list-manage'); if(!container) return;
+      container.innerHTML='';
+      const list=exercises.filter(ex=>exerciseListPane==='archived'?archivedExercises.includes(ex):!archivedExercises.includes(ex));
+      list.forEach(ex=>{
         const item=document.createElement('div'); item.className='exercise-manage-card';
         const muscles=getExerciseMuscles(ex);
-        item.innerHTML=`<div class="exercise-manage-main"><strong>${ex}</strong><div style="font-size:.62rem;color:var(--text-muted);margin-top:2px;">${muscles.all.join(' · ')}</div></div>${renderMuscleMap(muscles.all,true)}<div class="exercise-manage-actions"><button class="btn-step" onclick="editExerciseGroup(decodeURIComponent('${encodeURIComponent(ex)}'))" style="padding:4px 6px;font-size:.65rem;">Группа</button><button class="btn-step" onclick="removeExercise(decodeURIComponent('${encodeURIComponent(ex)}'))" style="padding:4px 6px;font-size:.65rem;">В архив</button></div>`;
+        item.innerHTML=`<div class="exercise-manage-main"><strong>${ex}</strong><div style="font-size:.62rem;color:var(--text-muted);margin-top:2px;">${muscles.all.join(' · ')}</div></div><div class="exercise-manage-actions">${exerciseListPane==='active'?`<button class="btn-step" onclick="editExerciseGroup(decodeURIComponent('${encodeURIComponent(ex)}'))" style="padding:5px 7px;font-size:.63rem;">Группа</button><button class="btn-step" onclick="removeExercise(decodeURIComponent('${encodeURIComponent(ex)}'))" style="padding:5px 7px;font-size:.63rem;">В архив</button>`:`<button class="btn-success" onclick="restoreExercise(decodeURIComponent('${encodeURIComponent(ex)}'))" style="padding:5px 7px;font-size:.63rem;">Вернуть</button>`}</div>`;
         container.appendChild(item);
       });
-      if (!active.length) { const e=document.createElement('div'); e.textContent='Нет активных упражнений'; e.style.cssText='font-size:0.72rem;color:var(--text-muted);padding:4px;'; container.appendChild(e); }
-      if (archived.length) { heading('АРХИВ (история сохранена)'); archived.forEach(ex=>{ const item=document.createElement('div'); item.className='set-item-row'; item.style.cssText='margin-bottom:4px;border-radius:6px;background:var(--bg-color);'; item.innerHTML=`<span style="flex:1;">${ex}</span><button class="btn-success" onclick="restoreExercise(decodeURIComponent('${encodeURIComponent(ex)}'))" style="padding:4px 7px;">Вернуть</button>`; container.appendChild(item); }); }
+      if(!list.length){const empty=document.createElement('div');empty.textContent=exerciseListPane==='active'?'Нет активных упражнений':'Архив пуст';empty.style.cssText='font-size:.72rem;color:var(--text-muted);padding:8px;';container.appendChild(empty);}
     }
-
     function editExerciseGroup(name) {
-      const groups=['Грудь','Спина','Плечи','Руки','Ноги / Ягодицы','Пресс','Другое'];
-      const current=exerciseGroups[name] || 'Другое';
-      const next=prompt(`Группа мышц для «${name}»\n${groups.join(' / ')}`, current);
-      if (next===null) return;
-      if (!groups.includes(next.trim())) { alert('Выберите одну из групп: '+groups.join(', ')); return; }
-      exerciseGroups[name]=next.trim(); localStorage.setItem(EX_GROUP_KEY,JSON.stringify(exerciseGroups)); renderManageList();
+      editingExerciseGroupName=name;
+      document.getElementById('exercise-group-edit-name').textContent=name;
+      document.getElementById('exercise-group-edit-select').value=exerciseGroups[name]||'Другое';
+      document.getElementById('exercise-group-edit-modal').classList.add('active');
+    }
+    function closeExerciseGroupEditor(){document.getElementById('exercise-group-edit-modal')?.classList.remove('active');editingExerciseGroupName=null;}
+    function saveExerciseGroupEditor(){
+      if(!editingExerciseGroupName)return;
+      exerciseGroups[editingExerciseGroupName]=document.getElementById('exercise-group-edit-select').value;
+      localStorage.setItem(EX_GROUP_KEY,JSON.stringify(exerciseGroups));
+      closeExerciseGroupEditor();renderManageList();renderTemplateCheckboxes();renderTemplatesList();
+      triggerHaptic();
     }
 
     async function addNewExercise() {
@@ -2998,6 +3042,15 @@
       return { bmr: Math.round(bmr), tdee: Math.round(tdee) };
     }
 
+
+    function onGenderChange(value) {
+      localStorage.setItem('lift_lab_body_gender', value);
+      recalculateTDEE();
+      renderTemplatesList();
+      renderManageList();
+      const cal=document.getElementById('calendar-day-details');
+      if(cal && cal.innerHTML.includes('muscle-map-panel')) { /* next render refreshes map on open */ }
+    }
     function recalculateTDEE() {
       const res = calculateBMRAndTDEE();
       const bmrEl = document.getElementById('bmr-val');
@@ -3128,6 +3181,8 @@
     }
 
     async function loadTodayKBDZData() {
+      const savedGender = localStorage.getItem('lift_lab_body_gender');
+      if (savedGender && document.getElementById('user-gender')) document.getElementById('user-gender').value = savedGender;
       const todayStr = dateKey(new Date());
       const saved = await getKBDZForDate(todayStr);
       if (saved) {
@@ -3140,7 +3195,7 @@
           if (document.getElementById('input-daily-steps')) document.getElementById('input-daily-steps').value = d.steps || '';
           if (document.getElementById('input-extra-active-kcal')) document.getElementById('input-extra-active-kcal').value = d.extraActive || '';
           
-          if (d.gender && document.getElementById('user-gender')) document.getElementById('user-gender').value = d.gender;
+          if (d.gender && !savedGender && document.getElementById('user-gender')) { document.getElementById('user-gender').value = d.gender; localStorage.setItem('lift_lab_body_gender', d.gender); }
           if (d.age && document.getElementById('user-age')) document.getElementById('user-age').value = d.age;
           if (d.height && document.getElementById('user-height')) document.getElementById('user-height').value = d.height;
           if (d.weight && document.getElementById('user-weight')) document.getElementById('user-weight').value = d.weight;
@@ -3185,7 +3240,7 @@
         const master = key.match(/^(gym_master_(?:exercises|logs|templates|body))$/);
         const version = key.match(/^gym_app_version$/);
         const kbdz = key.match(/^gym_kbdz_(\d{4}-\d{2}-\d{2})$/);
-        const liftLab = key.match(/^(lift_lab_(?:archived_exercises|exercise_groups))$/);
+        const liftLab = key.match(/^(lift_lab_(?:archived_exercises|exercise_groups|body_gender))$/);
         if (master) activeTwin = `${master[1]}${userId}`;
         else if (version) activeTwin = `gym_app_version${userId}`;
         else if (kbdz) activeTwin = `gym_kbdz_${kbdz[1]}${userId}`;

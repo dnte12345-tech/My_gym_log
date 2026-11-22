@@ -1,6 +1,6 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.43';
+const CACHE_NAME = 'lift-lab-cache-v1.0.44';
 const CACHE_PREFIX = 'lift-lab-cache-';
-const CORE_ASSETS = ['./', './index.html', './muscle-anatomy.webp'];
+const CORE_ASSETS = ['./', './index.html'];
 const OPTIONAL_ASSETS = [
   'https://telegram.org/js/telegram-web-app.js',
   'https://cdn.jsdelivr.net/npm/chart.js',
