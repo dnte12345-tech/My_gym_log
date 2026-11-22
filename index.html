@@ -182,6 +182,10 @@
       padding: 20px;
     }
     #settings-modal.active { display: flex; }
+    #exercise-note-modal { position:fixed; inset:0; z-index:10060; display:none; align-items:flex-end; justify-content:center; padding:12px; background:rgba(0,0,0,.72); }
+    #exercise-note-modal.active { display:flex; }
+    #exercise-note-modal .note-modal-card { width:100%; max-width:520px; max-height:88dvh; overflow:auto; background:var(--card-bg); color:var(--text-main); border:1px solid var(--border-color); border-radius:18px; padding:16px 16px calc(18px + env(safe-area-inset-bottom)); }
+    #exercise-note-text { min-height:110px; resize:vertical; }
 
     .modal-card {
       background: var(--card-bg);
@@ -583,6 +587,20 @@
     </div>
   </div>
 
+  <div id="exercise-note-modal" onclick="if(event.target===this)closeExerciseNoteEditor()">
+    <div class="note-modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+        <strong id="exercise-note-title">Заметка к упражнению</strong>
+        <button class="btn-close" onclick="closeExerciseNoteEditor()" aria-label="Закрыть">×</button>
+      </div>
+      <textarea id="exercise-note-text" rows="4" maxlength="2000" placeholder="Техника, ощущения, комментарии к выполнению…"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-step" style="flex:1" onclick="closeExerciseNoteEditor()">Отмена</button>
+        <button class="btn-primary" style="flex:2" onclick="saveExerciseNote()">Сохранить заметку</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Модальное окно настроек с отдельными разделами -->
   <div id="settings-modal">
     <div class="modal-card">
@@ -619,14 +637,14 @@
       <div id="settings-pane-backup" class="settings-pane">
         <div class="card" style="margin:0;padding:12px;">
           <h3 style="color:var(--accent);margin-bottom:6px;font-size:.9rem;">🛡️ Резервная копия</h3>
-          <p style="font-size:.72rem;color:var(--text-muted);line-height:1.4;margin-bottom:9px;">Сохраните текстовый файл (.txt) через системное меню iOS «Сохранить в Файлы».</p>
+          <p style="font-size:.72rem;color:var(--text-muted);line-height:1.4;margin-bottom:9px;">Сохраните резервную копию в формате JSON через системное меню iOS «Сохранить в Файлы».</p>
           <button class="btn-success" style="margin-bottom:7px;" onclick="exportBackup()">⬇️ Сохранить резервную копию</button>
           <button class="btn-step" onclick="document.getElementById('backup-file-input').click()">⬆️ Восстановить из файла</button>
-          <input id="backup-file-input" type="file" accept=".txt,.json,text/plain,application/json" style="display:none" onchange="importBackupFromFile(this)">
+          <input id="backup-file-input" type="file" accept=".json,application/json,text/plain" style="display:none" onchange="importBackupFromFile(this)">
           <div id="backup-status" role="status" style="font-size:.7rem;color:var(--text-muted);margin-top:7px;"></div>
         </div>
       </div>
-      <div class="version-info" id="app-version-display">Версия приложения: v1.0.44</div>
+      <div class="version-info" id="app-version-display">Версия приложения: v1.0.47</div>
     </div>
   </div>
   <div id="exercise-group-edit-modal" class="exercise-group-edit-modal" onclick="if(event.target===this)closeExerciseGroupEditor()">
@@ -896,7 +914,18 @@
             <option value="1.725">6-7 интенсивных тренировок</option>
           </select>
           <div id="tdee-info-box" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-color); padding: 6px; border-radius: 6px; margin-top: 4px;">
-            BMR: <strong id="bmr-val" style="color:var(--text-main);">1686</strong> ккал | База (TDEE): <strong id="tdee-val" style="color:var(--accent);">2613</strong> ккал/день
+            BMR: <strong id="bmr-val" style="color:var(--text-main);">1686</strong> ккал | Оценка TDEE: <strong id="tdee-val" style="color:var(--accent);">2613</strong> ккал/день
+          </div>
+          <div style="background:var(--bg-color);border:1px solid var(--border-color);border-radius:8px;padding:9px;margin-top:8px;">
+            <div style="font-size:.76rem;font-weight:700;color:var(--accent);margin-bottom:6px;">🎯 Ориентиры питания</div>
+            <label for="nutrition-goal-select">Цель</label>
+            <select id="nutrition-goal-select" onchange="updateNutritionRecommendations(true)" style="margin-bottom:6px;">
+              <option value="loss">Плавное снижение веса</option>
+              <option value="maintain">Поддержание веса</option>
+              <option value="gain">Плавный набор массы</option>
+            </select>
+            <div id="nutrition-recommendations" style="font-size:.72rem;color:var(--text-main);line-height:1.55;">Расчёт ориентиров...</div>
+            <div style="font-size:.62rem;color:var(--text-muted);margin-top:5px;">Приблизительный ориентир, а не медицинское назначение. Базовая цель не включает дополнительные шаги и отдельное кардио.</div>
           </div>
         </div>
 
@@ -945,7 +974,7 @@
         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
           <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:4px;">📅 Итог за последние 7 дней</h2>
           <div id="weekly-deficit-display" style="font-size: 1.15rem; font-weight: 800; color: var(--accent-green); margin: 4px 0;">0 ккал</div>
-          <div id="weekly-weight-trend-info" style="font-size: 0.75rem; color: var(--text-muted);">Прогноз динамики веса: ~0.0 кг / неделю</div>
+          <div id="weekly-weight-trend-info" style="font-size: 0.75rem; color: var(--text-muted);">Оценка энергетического баланса по сохранённым дням</div>
         </div>
       </div>
 
@@ -1034,7 +1063,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.45";
+    const APP_VERSION = "v1.0.47";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -2149,15 +2178,40 @@
       }
     }
 
-    async function editExerciseNote(dateStr, exercise) {
+    let editingExerciseNoteDate = null;
+    let editingExerciseNoteName = null;
+    function editExerciseNote(dateStr, exercise) {
       const matching = workoutLogs.filter(log => log.dateStr === dateStr && log.exercise === exercise);
       if (!matching.length) return;
-      const currentNote = matching.find(log => log.note)?.note || '';
-      const note = prompt(`Заметка к упражнению «${exercise}»:`, currentNote);
-      if (note === null) return;
-      matching.forEach(log => { log.note = note.trim(); });
+      editingExerciseNoteDate = dateStr;
+      editingExerciseNoteName = exercise;
+      const title = document.getElementById('exercise-note-title');
+      const field = document.getElementById('exercise-note-text');
+      if (title) title.textContent = `Заметка: ${exercise}`;
+      if (field) field.value = matching.find(log => log.note)?.note || '';
+      document.getElementById('exercise-note-modal')?.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => field?.focus(), 80);
+    }
+
+    function closeExerciseNoteEditor() {
+      document.getElementById('exercise-note-modal')?.classList.remove('active');
+      document.body.style.overflow = '';
+      editingExerciseNoteDate = null;
+      editingExerciseNoteName = null;
+    }
+
+    async function saveExerciseNote() {
+      if (editingExerciseNoteDate === null || editingExerciseNoteName === null) return;
+      const note = (document.getElementById('exercise-note-text')?.value || '').trim();
+      const matching = workoutLogs.filter(log => log.dateStr === editingExerciseNoteDate && log.exercise === editingExerciseNoteName);
+      if (!matching.length) { closeExerciseNoteEditor(); return; }
+      matching.forEach(log => { log.note = note; });
+      const dateStr = editingExerciseNoteDate;
+      closeExerciseNoteEditor();
       await saveData();
       showDayDetails(dateStr);
+      triggerHaptic();
     }
 
     async function copyWorkoutFromDate(sourceDate) {
@@ -3051,27 +3105,55 @@
       }
     }
 
-    function calculateBMRAndTDEE() {
-      const gender = document.getElementById('user-gender')?.value || 'male';
-      const age = parseFloat(document.getElementById('user-age')?.value) || 31;
-      const height = parseFloat(document.getElementById('user-height')?.value) || 179;
-      const weight = parseFloat(document.getElementById('user-weight')?.value) || 71.7;
-      const activity = parseFloat(document.getElementById('user-activity')?.value) || 1.55;
-
-      let bmr = (10 * weight) + (6.25 * height) - (5 * age);
-      if (gender === 'male') {
-        bmr += 5;
-      } else {
-        bmr -= 161;
-      }
-
-      const steps = parseFloat(document.getElementById('input-daily-steps')?.value) || 0;
-      const stepCalories = steps * 0.04;
-
-      const tdee = (bmr * activity) + stepCalories;
-      return { bmr: Math.round(bmr), tdee: Math.round(tdee) };
+    function getCurrentNutritionProfile() {
+      return {
+        gender: document.getElementById('user-gender')?.value || 'male',
+        age: parseFloat(document.getElementById('user-age')?.value) || 31,
+        height: parseFloat(document.getElementById('user-height')?.value) || 179,
+        weight: parseFloat(document.getElementById('user-weight')?.value) || 71.7,
+        activity: parseFloat(document.getElementById('user-activity')?.value) || 1.55
+      };
     }
 
+    function calculateBaseEnergy(profile) {
+      const gender = profile?.gender === 'female' ? 'female' : 'male';
+      const age = Number(profile?.age) > 0 ? Number(profile.age) : 31;
+      const height = Number(profile?.height) > 0 ? Number(profile.height) : 179;
+      const weight = Number(profile?.weight) > 0 ? Number(profile.weight) : 71.7;
+      const activity = Number(profile?.activity) > 0 ? Number(profile.activity) : 1.55;
+      let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+      bmr += gender === 'male' ? 5 : -161;
+      return { bmr: Math.round(bmr), baseTdee: Math.round(bmr * activity) };
+    }
+
+    function calculateBMRAndTDEE() {
+      const base = calculateBaseEnergy(getCurrentNutritionProfile());
+      const steps = Math.max(0, parseFloat(document.getElementById('input-daily-steps')?.value) || 0);
+      const stepCalories = steps * 0.04;
+      return { bmr: base.bmr, baseTdee: base.baseTdee, stepCalories: Math.round(stepCalories), tdee: Math.round(base.baseTdee + stepCalories) };
+    }
+
+    function updateNutritionRecommendations(saveChoice = false) {
+      const select = document.getElementById('nutrition-goal-select');
+      const output = document.getElementById('nutrition-recommendations');
+      if (!select || !output) return;
+      const allowed = ['loss','maintain','gain'];
+      const stored = localStorage.getItem('lift_lab_nutrition_goal');
+      if (!saveChoice) select.value = allowed.includes(stored) ? stored : 'maintain';
+      if (!allowed.includes(select.value)) select.value = 'maintain';
+      if (saveChoice) {
+        try { localStorage.setItem('lift_lab_nutrition_goal', select.value); } catch (e) { console.warn('Не удалось сохранить цель питания', e); }
+      }
+      const profile = getCurrentNutritionProfile();
+      const baseTdee = calculateBaseEnergy(profile).baseTdee;
+      const adjustment = select.value === 'loss' ? -300 : select.value === 'gain' ? 200 : 0;
+      const targetKcal = Math.max(0, baseTdee + adjustment);
+      const protein = Math.round(profile.weight * 1.8);
+      const fats = Math.round(profile.weight * 0.8);
+      const carbs = Math.max(0, Math.round((targetKcal - protein * 4 - fats * 9) / 4));
+      const goalLabel = select.value === 'loss' ? 'умеренный дефицит около 300 ккал' : select.value === 'gain' ? 'умеренный профицит около 200 ккал' : 'ориентир на поддержание';
+      output.innerHTML = `<strong>${targetKcal.toLocaleString('ru-RU')} ккал/день</strong> — ${goalLabel}<br>Белки: около ${protein} г · Жиры: около ${fats} г · Углеводы: около ${carbs} г`;
+    }
 
     function onGenderChange(value) {
       localStorage.setItem('lift_lab_body_gender', value);
@@ -3087,6 +3169,7 @@
       const tdeeEl = document.getElementById('tdee-val');
       if (bmrEl) bmrEl.textContent = res.bmr;
       if (tdeeEl) tdeeEl.textContent = res.tdee;
+      updateNutritionRecommendations();
       calculateKBDZBalance();
       calculateWeeklyBalance();
     }
@@ -3122,68 +3205,78 @@
         const pKcal = protein * 4;
         const fKcal = fats * 9;
         const cKcal = carbs * 4;
-        macrosEl.textContent = `Белки: ${protein}г (${pKcal}ккал) • Жиры: ${fats}г (${fKcal}ккал) • Угл: ${carbs}г (${cKcal}ккал)`;
+        const macroKcal = Math.round(pKcal + fKcal + cKcal);
+        const completeMacros = protein > 0 && fats > 0 && carbs > 0 && kcalIn > 0;
+        const difference = Math.round(macroKcal - kcalIn);
+        const mismatch = completeMacros && Math.abs(difference) > Math.max(100, kcalIn * 0.1)
+          ? ` · Разница с указанными ккал: ${difference > 0 ? '+' : ''}${difference}` : '';
+        macrosEl.textContent = `Белки: ${protein}г (${Math.round(pKcal)}ккал) • Жиры: ${fats}г (${Math.round(fKcal)}ккал) • Угл: ${carbs}г (${Math.round(cKcal)}ккал) • По БЖУ: ${macroKcal}ккал${mismatch}`;
       }
     }
 
     async function calculateWeeklyBalance() {
-      const { tdee } = calculateBMRAndTDEE();
       const weeklyDisplay = document.getElementById('weekly-deficit-display');
       const trendDisplay = document.getElementById('weekly-weight-trend-info');
       if (!weeklyDisplay) return;
 
       let totalWeeklyBalance = 0;
       let daysCount = 0;
-
+      let daysUsingCurrentProfile = 0;
+      const currentProfile = getCurrentNutritionProfile();
       const now = new Date();
+
       for (let i = 0; i < 7; i++) {
-        const d = new Date();
+        const d = new Date(now);
         d.setDate(now.getDate() - i);
         const dateStr = dateKey(d);
         const saved = await getKBDZForDate(dateStr);
-
-        if (saved) {
-          try {
-            const data = JSON.parse(saved);
-            const inKcal = data.kcalIn || 0;
-            if (inKcal > 0) {
-              const extraAct = data.extraActive || 0;
-              const stepKcal = (data.steps || 0) * 0.04;
-              const dayBurned = tdee + extraAct + stepKcal;
-              totalWeeklyBalance += (inKcal - dayBurned);
-              daysCount++;
-            }
-          } catch(e) {}
-        }
+        if (!saved) continue;
+        try {
+          const data = JSON.parse(saved);
+          const inKcal = Math.max(0, Number(data.kcalIn) || 0);
+          if (inKcal <= 0) continue;
+          const hasProfileSnapshot = ['age','height','weight','activity'].every(key => Number(data[key]) > 0) && ['male','female'].includes(data.gender);
+          const profile = {
+            gender: ['male','female'].includes(data.gender) ? data.gender : currentProfile.gender,
+            age: Number(data.age) > 0 ? Number(data.age) : currentProfile.age,
+            height: Number(data.height) > 0 ? Number(data.height) : currentProfile.height,
+            weight: Number(data.weight) > 0 ? Number(data.weight) : currentProfile.weight,
+            activity: Number(data.activity) > 0 ? Number(data.activity) : currentProfile.activity
+          };
+          if (!hasProfileSnapshot) daysUsingCurrentProfile++;
+          const base = calculateBaseEnergy(profile).baseTdee;
+          const stepCalories = Math.max(0, Number(data.steps) || 0) * 0.04;
+          const extraActive = Math.max(0, Number(data.extraActive) || 0);
+          const dayBurned = base + stepCalories + extraActive;
+          totalWeeklyBalance += inKcal - dayBurned;
+          daysCount++;
+        } catch(e) {}
       }
 
-      const currentIn = parseFloat(document.getElementById('input-kcal-in')?.value) || 0;
+      const currentIn = Math.max(0, parseFloat(document.getElementById('input-kcal-in')?.value) || 0);
       const todaySaved = await getKBDZForDate(dateKey(now));
       if (currentIn > 0 && !todaySaved) {
-        const extraAct = parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0;
-        const dayBurned = tdee + extraAct;
-        totalWeeklyBalance += (currentIn - dayBurned);
+        const base = calculateBaseEnergy(currentProfile).baseTdee;
+        const steps = Math.max(0, parseFloat(document.getElementById('input-daily-steps')?.value) || 0);
+        const extraActive = Math.max(0, parseFloat(document.getElementById('input-extra-active-kcal')?.value) || 0);
+        totalWeeklyBalance += currentIn - base - (steps * 0.04) - extraActive;
         daysCount++;
       }
 
       if (daysCount === 0) {
-        weeklyDisplay.textContent = "0 ккал (Нет данных за 7 дней)";
-        weeklyDisplay.style.color = "var(--text-muted)";
-        if (trendDisplay) trendDisplay.textContent = "Заполняйте дневник ежедневно для точности";
+        weeklyDisplay.textContent = '0 ккал (Нет данных за 7 дней)';
+        weeklyDisplay.style.color = 'var(--text-muted)';
+        if (trendDisplay) trendDisplay.textContent = 'Заполняйте дневник ежедневно для оценки баланса';
         return;
       }
 
       const netBalance = Math.round(totalWeeklyBalance);
-      const weightChangeKg = (netBalance / 7700).toFixed(2);
-
-      if (netBalance > 0) {
-        weeklyDisplay.textContent = `+${netBalance} ккал (Недельный профицит)`;
-        weeklyDisplay.style.color = "#38bdf8";
-        if (trendDisplay) trendDisplay.textContent = `Прогноз динамики: +${weightChangeKg} кг жира/мышц за неделю`;
-      } else {
-        weeklyDisplay.textContent = `${netBalance} ккал (Недельный дефицит)`;
-        weeklyDisplay.style.color = "#22c55e";
-        if (trendDisplay) trendDisplay.textContent = `Прогноз динамики: ${weightChangeKg} кг массы за неделю`;
+      weeklyDisplay.textContent = `${netBalance > 0 ? '+' : ''}${netBalance} ккал (${netBalance > 0 ? 'Недельный профицит' : netBalance < 0 ? 'Недельный дефицит' : 'Баланс около нуля'})`;
+      weeklyDisplay.style.color = netBalance > 0 ? '#38bdf8' : netBalance < 0 ? '#22c55e' : 'var(--text-muted)';
+      if (trendDisplay) {
+        const coverage = `Учтено дней: ${daysCount} из 7.`;
+        const legacyNote = daysUsingCurrentProfile ? ` Для ${daysUsingCurrentProfile} старых дней нет снимка параметров — использованы текущие настройки.` : '';
+        trendDisplay.textContent = `${coverage}${legacyNote} Это оценка энергетического баланса, а не точный прогноз изменения веса.`;
       }
     }
 
@@ -3244,7 +3337,7 @@
       return /^gym_master_(?:exercises|logs|templates|body)(?:_tg_\d+)?$/.test(key) ||
         /^gym_app_(?:theme|version)(?:_tg_\d+)?$/.test(key) ||
         /^gym_kbdz_\d{4}-\d{2}-\d{2}(?:_tg_\d+)?$/.test(key) ||
-        /^lift_lab_(?:archived_exercises|exercise_groups)(?:_tg_\d+)?$/.test(key);
+        (/^lift_lab_(?:archived_exercises|exercise_groups)(?:_tg_\d+)?$/.test(key) || key === 'lift_lab_body_gender' || key === 'lift_lab_nutrition_goal');
     }
 
     function setBackupStatus(message, isError = false) {
@@ -3308,13 +3401,13 @@
           entries
         };
 
-        const fileName = `Lift-Lab-backup-${dateKey(new Date())}.txt`;
+        const fileName = `Lift-Lab-backup-${dateKey(new Date())}.json`;
         const jsonStr = JSON.stringify(backup, null, 2);
         validateBackupObject(backup);
         const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
         if (blob.size > BACKUP_MAX_BYTES) throw new Error('Резервная копия превышает допустимый размер 10 МБ.');
 
-        const file = new File([blob], fileName, { type: 'text/plain' });
+        const file = new File([blob], fileName, { type: 'application/json;charset=utf-8' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           navigator.share({
             files: [file],
@@ -3344,6 +3437,8 @@
       if (theme) return 'gym_app_theme';
       const kbdz = key.match(/^gym_kbdz_(\d{4}-\d{2}-\d{2})(?:_tg_\d+)?$/);
       if (kbdz) return `gym_kbdz_${kbdz[1]}${userId}`;
+      if (key === 'lift_lab_body_gender') return 'lift_lab_body_gender';
+      if (key === 'lift_lab_nutrition_goal') return 'lift_lab_nutrition_goal';
       const liftLab = key.match(/^(lift_lab_(?:archived_exercises|exercise_groups))(?:_tg_\d+)?$/);
       if (liftLab) return `${liftLab[1]}${userId}`;
       return null;
