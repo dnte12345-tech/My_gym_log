@@ -446,7 +446,12 @@
 
     .vanilla-calendar { background: var(--input-bg) !important; border-color: var(--border-color) !important; width: 100% !important; padding: 6px !important; color: var(--text-main) !important; }
     .vanilla-calendar-day__btn_selected { background-color: var(--accent) !important; color: var(--accent-text) !important; font-weight: bold; }
-    .vanilla-calendar-day__btn_workout { background-color: rgba(34, 197, 94, 0.25) !important; color: #22c55e !important; border: 1px solid rgba(34, 197, 94, 0.5) !important; font-weight: bold; }
+    .vanilla-calendar-day__btn_workout { background: rgba(34, 197, 94, 0.28) !important; color: #22c55e !important; border: 1px solid rgba(34, 197, 94, 0.58) !important; font-weight: 800 !important; }
+    .vanilla-calendar-day__btn_nutrition { background: rgba(56, 189, 248, 0.28) !important; color: #38bdf8 !important; border: 1px solid rgba(56, 189, 248, 0.62) !important; font-weight: 800 !important; }
+    .vanilla-calendar-day__btn_both { background: linear-gradient(135deg, rgba(34,197,94,.38) 0 49.4%, rgba(56,189,248,.38) 50.6% 100%) !important; color: var(--text-main) !important; border: 1px solid rgba(148,163,184,.72) !important; font-weight: 900 !important; }
+    .calendar-legend { display:flex; flex-wrap:wrap; gap:7px 13px; margin:8px 2px 0; color:var(--text-muted); font-size:.68rem; }
+    .calendar-legend span { display:inline-flex; align-items:center; gap:5px; }
+    .calendar-legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }
     
     .analytics-metric {
       min-width: 0;
@@ -878,6 +883,11 @@
       <div class="card">
         <h2>Активность</h2>
         <div id="calendar"></div>
+        <div class="calendar-legend" aria-label="Обозначения календаря">
+          <span><i style="background:#22c55e"></i>Тренировка</span>
+          <span><i style="background:#38bdf8"></i>Питание</span>
+          <span><i style="background:linear-gradient(135deg,#22c55e 0 49%,#38bdf8 51% 100%)"></i>Оба события</span>
+        </div>
       </div>
       <div class="card card-scrollable">
         <h2 id="selected-date-title">Выберите дату</h2>
@@ -1189,7 +1199,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.51";
+    const APP_VERSION = "v1.0.52";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -2154,7 +2164,6 @@
     let calendarInstance = null;
     function initOrUpdateCalendar() {
       if (typeof VanillaCalendar === 'undefined') return;
-      const workoutDates = [...new Set(workoutLogs.map(l => l.dateStr))];
       if (!calendarInstance) {
         calendarInstance = new VanillaCalendar('#calendar', {
           settings: { lang: 'ru', iso8601: true, selection: { day: 'single' } },
@@ -2162,43 +2171,54 @@
             clickDay(event, self) {
               triggerHaptic();
               showDayDetails(self.selectedDates[0]);
-              highlightWorkoutDays([...new Set(workoutLogs.map(l => l.dateStr))]);
+              highlightCalendarActivity();
             },
-            changeMonth(self) {
-              highlightWorkoutDays([...new Set(workoutLogs.map(l => l.dateStr))]);
-            },
-            changeYear(self) {
-              highlightWorkoutDays([...new Set(workoutLogs.map(l => l.dateStr))]);
-            }
+            changeMonth() { setTimeout(highlightCalendarActivity, 70); },
+            changeYear() { setTimeout(highlightCalendarActivity, 70); }
           }
         });
         calendarInstance.init();
       }
-      highlightWorkoutDays(workoutDates);
+      setTimeout(highlightCalendarActivity, 70);
     }
 
-    function highlightWorkoutDays(dates) {
-      setTimeout(() => {
-        document.querySelectorAll('.vanilla-calendar-day__btn').forEach(btn => {
-          btn.classList.remove('vanilla-calendar-day__btn_workout');
-        });
-        dates.forEach(date => {
-          const dayBtn = document.querySelector(`[data-calendar-day="${date}"]`);
-          if (dayBtn) {
-            dayBtn.classList.add('vanilla-calendar-day__btn_workout');
+    // Окрашиваем только даты текущего отображаемого месяца; записи питания
+    // читаются из прежних ключей gym_kbdz_YYYY-MM-DD без переноса/миграции.
+    async function highlightCalendarActivity() {
+      const buttons = [...document.querySelectorAll('#calendar .vanilla-calendar-day__btn[data-calendar-day]')];
+      if (!buttons.length) return;
+      const workoutDates = new Set(workoutLogs.map(log => log.dateStr));
+      await Promise.all(buttons.map(async btn => {
+        const date = btn.getAttribute('data-calendar-day');
+        btn.classList.remove('vanilla-calendar-day__btn_workout','vanilla-calendar-day__btn_nutrition','vanilla-calendar-day__btn_both');
+        const hasWorkout = workoutDates.has(date);
+        let hasNutrition = false;
+        try {
+          const saved = await getKBDZForDate(date);
+          if (saved) {
+            const data = JSON.parse(saved);
+            hasNutrition = !!data && typeof data === 'object' && !Array.isArray(data);
           }
-        });
-      }, 50);
+        } catch (_) {}
+        if (hasWorkout && hasNutrition) btn.classList.add('vanilla-calendar-day__btn_both');
+        else if (hasWorkout) btn.classList.add('vanilla-calendar-day__btn_workout');
+        else if (hasNutrition) btn.classList.add('vanilla-calendar-day__btn_nutrition');
+      }));
     }
 
-    function showDayDetails(dateStr) {
+    async function showDayDetails(dateStr) {
       const container = document.getElementById('calendar-day-details');
       const title = document.getElementById('selected-date-title');
       if (!dateStr || !container) return;
       
       const formattedDate = dateFromKey(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-      if (title) title.textContent = `Тренировка: ${formattedDate}`;
+      if (title) title.textContent = `История за ${formattedDate}`;
       const logsForDay = workoutLogs.filter(l => l.dateStr === dateStr);
+      let nutritionForDay = null;
+      try {
+        const rawNutrition = await getKBDZForDate(dateStr);
+        if (rawNutrition) nutritionForDay = JSON.parse(rawNutrition);
+      } catch (_) { nutritionForDay = null; }
 
       container.innerHTML = '';
 
@@ -2262,6 +2282,63 @@
       } else {
         container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">В этот день тренировок не было.</p>';
       }
+
+      const nutritionBlock = document.createElement('section');
+      nutritionBlock.style.cssText = 'margin-top:12px;padding:10px;border:1px solid rgba(56,189,248,.38);background:rgba(56,189,248,.07);border-radius:10px;';
+      const nutritionTitle = document.createElement('div');
+      nutritionTitle.style.cssText = 'font-size:.82rem;font-weight:800;color:#38bdf8;margin-bottom:7px;';
+      nutritionTitle.textContent = 'Питание за день';
+      nutritionBlock.appendChild(nutritionTitle);
+      if (nutritionForDay && typeof nutritionForDay === 'object') {
+        const n = nutritionForDay;
+        const nutritionValues = [
+          ['Калории', Number(n.kcalIn)||0, 'ккал'],
+          ['Белки', Number(n.protein)||0, 'г'],
+          ['Жиры', Number(n.fats)||0, 'г'],
+          ['Углеводы', Number(n.carbs)||0, 'г'],
+          ['Шаги', Number(n.steps)||0, ''],
+          ['Доп. активность', Number(n.extraActive)||0, 'ккал']
+        ];
+        const values = document.createElement('div');
+        values.style.cssText = 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:.76rem;';
+        nutritionValues.forEach(([label,value,unit]) => {
+          const item = document.createElement('div');
+          item.style.cssText = 'padding:7px;background:var(--input-bg);border-radius:7px;';
+          const caption = document.createElement('div'); caption.style.cssText='color:var(--text-muted);font-size:.66rem;'; caption.textContent=label;
+          const strong = document.createElement('strong'); strong.textContent=`${value.toLocaleString('ru-RU')} ${unit}`.trim();
+          item.append(caption,strong); values.appendChild(item);
+        });
+        nutritionBlock.appendChild(values);
+        const editNutrition = document.createElement('button');
+        editNutrition.className = 'btn-step';
+        editNutrition.style.cssText = 'width:100%;margin-top:8px;font-size:.74rem;';
+        editNutrition.textContent = 'Открыть дневник питания за эту дату';
+        editNutrition.onclick = () => {
+          const picker = document.getElementById('input-kbdz-date');
+          if (picker) picker.value = dateStr;
+          loadKBDZForSelectedDate();
+          switchTab('body');
+          switchBodySubTab('calc');
+        };
+        nutritionBlock.appendChild(editNutrition);
+      } else {
+        const emptyNutrition = document.createElement('p');
+        emptyNutrition.style.cssText = 'margin:0;color:var(--text-muted);font-size:.75rem;';
+        emptyNutrition.textContent = 'Записи питания за этот день нет.';
+        nutritionBlock.appendChild(emptyNutrition);
+        const addNutrition = document.createElement('button');
+        addNutrition.className = 'btn-step'; addNutrition.style.cssText='width:100%;margin-top:8px;font-size:.74rem;';
+        addNutrition.textContent = 'Добавить питание за эту дату';
+        addNutrition.onclick = () => {
+          const picker = document.getElementById('input-kbdz-date');
+          if (picker) picker.value = dateStr;
+          loadKBDZForSelectedDate();
+          switchTab('body');
+          switchBodySubTab('calc');
+        };
+        nutritionBlock.appendChild(addNutrition);
+      }
+      container.appendChild(nutritionBlock);
 
       const addBlock = document.createElement('div');
       addBlock.style.marginTop = '12px';
@@ -3505,6 +3582,10 @@
       if (label) label.textContent=`Запись сохранена: ${formatKBDZDate(selectedDate)}`;
       calculateWeeklyBalance();
       await renderKBDZHistory();
+      if (document.getElementById('tab-calendar')?.classList.contains('active')) {
+        highlightCalendarActivity();
+        if (document.getElementById('selected-date-title')?.textContent.includes(formatKBDZDate(selectedDate))) showDayDetails(selectedDate);
+      }
       if (tg?.showAlert) tg.showAlert(`Дневник КБЖУ сохранён: ${formatKBDZDate(selectedDate)}`);
       else alert(`Дневник КБЖУ сохранён: ${formatKBDZDate(selectedDate)}`);
     }
