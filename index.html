@@ -449,6 +449,9 @@
     .vanilla-calendar-day__btn_workout { background: rgba(34, 197, 94, 0.28) !important; color: #22c55e !important; border: 1px solid rgba(34, 197, 94, 0.58) !important; font-weight: 800 !important; }
     .vanilla-calendar-day__btn_nutrition { background: rgba(56, 189, 248, 0.28) !important; color: #38bdf8 !important; border: 1px solid rgba(56, 189, 248, 0.62) !important; font-weight: 800 !important; }
     .vanilla-calendar-day__btn_both { background: linear-gradient(135deg, rgba(34,197,94,.38) 0 49.4%, rgba(56,189,248,.38) 50.6% 100%) !important; color: var(--text-main) !important; border: 1px solid rgba(148,163,184,.72) !important; font-weight: 900 !important; }
+    .vanilla-calendar-day__btn_selected.vanilla-calendar-day__btn_workout { background: rgba(34,197,94,.34) !important; color:#22c55e !important; border:1px solid rgba(34,197,94,.72) !important; }
+    .vanilla-calendar-day__btn_selected.vanilla-calendar-day__btn_nutrition { background: rgba(56,189,248,.34) !important; color:#38bdf8 !important; border:1px solid rgba(56,189,248,.72) !important; }
+    .vanilla-calendar-day__btn_selected.vanilla-calendar-day__btn_both { background: linear-gradient(135deg, rgba(34,197,94,.42) 0 49.4%, rgba(56,189,248,.42) 50.6% 100%) !important; color:var(--text-main) !important; border:1px solid rgba(148,163,184,.82) !important; }
     .calendar-legend { display:flex; flex-wrap:wrap; gap:7px 13px; margin:8px 2px 0; color:var(--text-muted); font-size:.68rem; }
     .calendar-legend span { display:inline-flex; align-items:center; gap:5px; }
     .calendar-legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }
@@ -1199,7 +1202,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.52";
+    const APP_VERSION = "v1.0.53";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -2162,8 +2165,18 @@
     }
 
     let calendarInstance = null;
+    let calendarHighlightRun = 0;
+    let calendarObserver = null;
+    let calendarHighlightTimer = null;
+
+    function scheduleCalendarHighlight(delay = 50) {
+      clearTimeout(calendarHighlightTimer);
+      calendarHighlightTimer = setTimeout(() => highlightCalendarActivity(), delay);
+    }
+
     function initOrUpdateCalendar() {
       if (typeof VanillaCalendar === 'undefined') return;
+      const calendarRoot = document.getElementById('calendar');
       if (!calendarInstance) {
         calendarInstance = new VanillaCalendar('#calendar', {
           settings: { lang: 'ru', iso8601: true, selection: { day: 'single' } },
@@ -2171,27 +2184,33 @@
             clickDay(event, self) {
               triggerHaptic();
               showDayDetails(self.selectedDates[0]);
-              highlightCalendarActivity();
+              scheduleCalendarHighlight(0);
             },
-            changeMonth() { setTimeout(highlightCalendarActivity, 70); },
-            changeYear() { setTimeout(highlightCalendarActivity, 70); }
+            changeMonth() { scheduleCalendarHighlight(80); },
+            changeYear() { scheduleCalendarHighlight(80); }
           }
         });
         calendarInstance.init();
       }
-      setTimeout(highlightCalendarActivity, 70);
+      // Vanilla Calendar rebuilds its day buttons on selection/month changes.
+      // Observe only child changes so our own class updates do not create loops.
+      if (calendarRoot && !calendarObserver && typeof MutationObserver !== 'undefined') {
+        calendarObserver = new MutationObserver(() => scheduleCalendarHighlight(30));
+        calendarObserver.observe(calendarRoot, { childList: true, subtree: true });
+      }
+      scheduleCalendarHighlight(80);
     }
 
-    // Окрашиваем только даты текущего отображаемого месяца; записи питания
-    // читаются из прежних ключей gym_kbdz_YYYY-MM-DD без переноса/миграции.
+    // Keep the activity state in a date map, then apply it to the *current* DOM.
+    // This avoids stale button references when the calendar library replaces its markup.
     async function highlightCalendarActivity() {
-      const buttons = [...document.querySelectorAll('#calendar .vanilla-calendar-day__btn[data-calendar-day]')];
-      if (!buttons.length) return;
+      const runId = ++calendarHighlightRun;
+      const initialButtons = [...document.querySelectorAll('#calendar .vanilla-calendar-day__btn[data-calendar-day]')];
+      if (!initialButtons.length) return;
+      const dates = [...new Set(initialButtons.map(btn => btn.getAttribute('data-calendar-day')).filter(Boolean))];
       const workoutDates = new Set(workoutLogs.map(log => log.dateStr));
-      await Promise.all(buttons.map(async btn => {
-        const date = btn.getAttribute('data-calendar-day');
-        btn.classList.remove('vanilla-calendar-day__btn_workout','vanilla-calendar-day__btn_nutrition','vanilla-calendar-day__btn_both');
-        const hasWorkout = workoutDates.has(date);
+      const activityByDate = new Map();
+      await Promise.all(dates.map(async date => {
         let hasNutrition = false;
         try {
           const saved = await getKBDZForDate(date);
@@ -2200,10 +2219,19 @@
             hasNutrition = !!data && typeof data === 'object' && !Array.isArray(data);
           }
         } catch (_) {}
-        if (hasWorkout && hasNutrition) btn.classList.add('vanilla-calendar-day__btn_both');
-        else if (hasWorkout) btn.classList.add('vanilla-calendar-day__btn_workout');
-        else if (hasNutrition) btn.classList.add('vanilla-calendar-day__btn_nutrition');
+        activityByDate.set(date, { hasWorkout: workoutDates.has(date), hasNutrition });
       }));
+      if (runId !== calendarHighlightRun) return;
+      const currentButtons = [...document.querySelectorAll('#calendar .vanilla-calendar-day__btn[data-calendar-day]')];
+      currentButtons.forEach(btn => {
+        const date = btn.getAttribute('data-calendar-day');
+        const activity = activityByDate.get(date);
+        btn.classList.remove('vanilla-calendar-day__btn_workout','vanilla-calendar-day__btn_nutrition','vanilla-calendar-day__btn_both');
+        if (!activity) return;
+        if (activity.hasWorkout && activity.hasNutrition) btn.classList.add('vanilla-calendar-day__btn_both');
+        else if (activity.hasWorkout) btn.classList.add('vanilla-calendar-day__btn_workout');
+        else if (activity.hasNutrition) btn.classList.add('vanilla-calendar-day__btn_nutrition');
+      });
     }
 
     async function showDayDetails(dateStr) {
@@ -2221,6 +2249,63 @@
       } catch (_) { nutritionForDay = null; }
 
       container.innerHTML = '';
+
+      const nutritionBlock = document.createElement('section');
+      nutritionBlock.style.cssText = 'margin-top:12px;padding:10px;border:1px solid rgba(56,189,248,.38);background:rgba(56,189,248,.07);border-radius:10px;';
+      const nutritionTitle = document.createElement('div');
+      nutritionTitle.style.cssText = 'font-size:.82rem;font-weight:800;color:#38bdf8;margin-bottom:7px;';
+      nutritionTitle.textContent = 'Питание за день';
+      nutritionBlock.appendChild(nutritionTitle);
+      if (nutritionForDay && typeof nutritionForDay === 'object') {
+        const n = nutritionForDay;
+        const nutritionValues = [
+          ['Калории', Number(n.kcalIn)||0, 'ккал'],
+          ['Белки', Number(n.protein)||0, 'г'],
+          ['Жиры', Number(n.fats)||0, 'г'],
+          ['Углеводы', Number(n.carbs)||0, 'г'],
+          ['Шаги', Number(n.steps)||0, ''],
+          ['Доп. активность', Number(n.extraActive)||0, 'ккал']
+        ];
+        const values = document.createElement('div');
+        values.style.cssText = 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:.76rem;';
+        nutritionValues.forEach(([label,value,unit]) => {
+          const item = document.createElement('div');
+          item.style.cssText = 'padding:7px;background:var(--input-bg);border-radius:7px;';
+          const caption = document.createElement('div'); caption.style.cssText='color:var(--text-muted);font-size:.66rem;'; caption.textContent=label;
+          const strong = document.createElement('strong'); strong.textContent=`${value.toLocaleString('ru-RU')} ${unit}`.trim();
+          item.append(caption,strong); values.appendChild(item);
+        });
+        nutritionBlock.appendChild(values);
+        const editNutrition = document.createElement('button');
+        editNutrition.className = 'btn-step';
+        editNutrition.style.cssText = 'width:100%;margin-top:8px;font-size:.74rem;';
+        editNutrition.textContent = 'Открыть дневник питания за эту дату';
+        editNutrition.onclick = () => {
+          const picker = document.getElementById('input-kbdz-date');
+          if (picker) picker.value = dateStr;
+          loadKBDZForSelectedDate();
+          switchTab('body');
+          switchBodySubTab('calc');
+        };
+        nutritionBlock.appendChild(editNutrition);
+      } else {
+        const emptyNutrition = document.createElement('p');
+        emptyNutrition.style.cssText = 'margin:0;color:var(--text-muted);font-size:.75rem;';
+        emptyNutrition.textContent = 'Записи питания за этот день нет.';
+        nutritionBlock.appendChild(emptyNutrition);
+        const addNutrition = document.createElement('button');
+        addNutrition.className = 'btn-step'; addNutrition.style.cssText='width:100%;margin-top:8px;font-size:.74rem;';
+        addNutrition.textContent = 'Добавить питание за эту дату';
+        addNutrition.onclick = () => {
+          const picker = document.getElementById('input-kbdz-date');
+          if (picker) picker.value = dateStr;
+          loadKBDZForSelectedDate();
+          switchTab('body');
+          switchBodySubTab('calc');
+        };
+        nutritionBlock.appendChild(addNutrition);
+      }
+      container.appendChild(nutritionBlock);
 
       if (logsForDay.length > 0) {
         const copyButton = document.createElement('button');
@@ -2280,65 +2365,13 @@
           container.appendChild(details);
         });
       } else {
-        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">В этот день тренировок не было.</p>';
+        const emptyWorkout = document.createElement('p');
+        emptyWorkout.style.cssText = 'color:var(--text-muted);font-size:.8rem;margin:0 0 8px;';
+        emptyWorkout.textContent = 'В этот день тренировок не было.';
+        container.appendChild(emptyWorkout);
       }
 
-      const nutritionBlock = document.createElement('section');
-      nutritionBlock.style.cssText = 'margin-top:12px;padding:10px;border:1px solid rgba(56,189,248,.38);background:rgba(56,189,248,.07);border-radius:10px;';
-      const nutritionTitle = document.createElement('div');
-      nutritionTitle.style.cssText = 'font-size:.82rem;font-weight:800;color:#38bdf8;margin-bottom:7px;';
-      nutritionTitle.textContent = 'Питание за день';
-      nutritionBlock.appendChild(nutritionTitle);
-      if (nutritionForDay && typeof nutritionForDay === 'object') {
-        const n = nutritionForDay;
-        const nutritionValues = [
-          ['Калории', Number(n.kcalIn)||0, 'ккал'],
-          ['Белки', Number(n.protein)||0, 'г'],
-          ['Жиры', Number(n.fats)||0, 'г'],
-          ['Углеводы', Number(n.carbs)||0, 'г'],
-          ['Шаги', Number(n.steps)||0, ''],
-          ['Доп. активность', Number(n.extraActive)||0, 'ккал']
-        ];
-        const values = document.createElement('div');
-        values.style.cssText = 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:.76rem;';
-        nutritionValues.forEach(([label,value,unit]) => {
-          const item = document.createElement('div');
-          item.style.cssText = 'padding:7px;background:var(--input-bg);border-radius:7px;';
-          const caption = document.createElement('div'); caption.style.cssText='color:var(--text-muted);font-size:.66rem;'; caption.textContent=label;
-          const strong = document.createElement('strong'); strong.textContent=`${value.toLocaleString('ru-RU')} ${unit}`.trim();
-          item.append(caption,strong); values.appendChild(item);
-        });
-        nutritionBlock.appendChild(values);
-        const editNutrition = document.createElement('button');
-        editNutrition.className = 'btn-step';
-        editNutrition.style.cssText = 'width:100%;margin-top:8px;font-size:.74rem;';
-        editNutrition.textContent = 'Открыть дневник питания за эту дату';
-        editNutrition.onclick = () => {
-          const picker = document.getElementById('input-kbdz-date');
-          if (picker) picker.value = dateStr;
-          loadKBDZForSelectedDate();
-          switchTab('body');
-          switchBodySubTab('calc');
-        };
-        nutritionBlock.appendChild(editNutrition);
-      } else {
-        const emptyNutrition = document.createElement('p');
-        emptyNutrition.style.cssText = 'margin:0;color:var(--text-muted);font-size:.75rem;';
-        emptyNutrition.textContent = 'Записи питания за этот день нет.';
-        nutritionBlock.appendChild(emptyNutrition);
-        const addNutrition = document.createElement('button');
-        addNutrition.className = 'btn-step'; addNutrition.style.cssText='width:100%;margin-top:8px;font-size:.74rem;';
-        addNutrition.textContent = 'Добавить питание за эту дату';
-        addNutrition.onclick = () => {
-          const picker = document.getElementById('input-kbdz-date');
-          if (picker) picker.value = dateStr;
-          loadKBDZForSelectedDate();
-          switchTab('body');
-          switchBodySubTab('calc');
-        };
-        nutritionBlock.appendChild(addNutrition);
-      }
-      container.appendChild(nutritionBlock);
+
 
       const addBlock = document.createElement('div');
       addBlock.style.marginTop = '12px';
