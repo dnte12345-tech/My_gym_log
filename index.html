@@ -600,6 +600,14 @@
     header h1 { font-size:1rem; letter-spacing:1.7px; color:#eaf7ff; }
     header h1::before { content:""; display:inline-block; width:7px; height:7px; margin:0 9px 2px 0; border-radius:50%; background:var(--accent); box-shadow:0 0 13px rgba(66,200,255,.8); }
     .gear-btn { right:16px; width:36px; height:36px; border:1px solid var(--border-color); border-radius:12px; background:rgba(255,255,255,.045); font-size:1rem; }
+    .macro-input-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; width:100%; }
+    .macro-input-grid > div { min-width:0; }
+    .macro-input-grid label { font-size:.62rem; white-space:nowrap; letter-spacing:0; }
+    .macro-input-grid input { min-width:0; width:100%; padding:9px 5px; text-align:center; font-size:.9rem; }
+    #input-kbdz-date { color-scheme:dark; }
+    #kbdz-history-list .kbdz-history-item { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; margin-top:5px; padding:8px 9px; border:1px solid var(--border-color); border-radius:9px; background:var(--card-bg); color:var(--text-main); text-align:left; font-size:.7rem; }
+    #kbdz-history-list .kbdz-history-item.active { border-color:var(--accent); background:var(--accent-soft); }
+    @media (max-width:360px) { .macro-input-grid { gap:4px; } .macro-input-grid label { font-size:.56rem; } .macro-input-grid input { padding:8px 3px; font-size:.82rem; } }
     .container { max-width:560px; padding:12px 13px 8px; gap:10px; }
     .tab-content { gap:10px; }
     .card {
@@ -1028,8 +1036,9 @@
           <label>Силовые тренировки / Активность</label>
           <select id="user-activity" onchange="recalculateTDEE()">
             <option value="1.2">Минимальная (сидячая)</option>
-            <option value="1.375">1-3 тренировки в неделю</option>
-            <option value="1.55" selected>3-5 тренировок в неделю</option>
+            <option value="1.3" selected>1-2 тренировки в неделю</option>
+            <option value="1.375">3 тренировки в неделю</option>
+            <option value="1.55">3-5 тренировок в неделю</option>
             <option value="1.725">6-7 интенсивных тренировок</option>
           </select>
           <div id="tdee-info-box" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-color); padding: 6px; border-radius: 6px; margin-top: 4px;">
@@ -1049,7 +1058,10 @@
         </div>
 
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
-          <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">📊 Дневник за сегодня</h2>
+          <h2 style="font-size: 0.8rem; color: var(--accent); margin-bottom:6px;">📊 Дневник питания</h2>
+          <label for="input-kbdz-date">Дата записи</label>
+          <input type="date" id="input-kbdz-date" style="margin-bottom:7px;" onchange="loadKBDZForSelectedDate()">
+          <div id="kbdz-selected-date-label" style="font-size:.68rem;color:var(--text-muted);margin:-2px 0 7px;">Запись за выбранную дату</div>
           <div class="row" style="margin-bottom:4px;">
             <div>
               <label>Съедено (ккал)</label>
@@ -1061,17 +1073,11 @@
             </div>
           </div>
 
-          <label>Макронутриенты (Б / Ж / У в граммах)</label>
-          <div class="row" style="margin-bottom:6px;">
-            <div>
-              <input type="number" id="input-protein" placeholder="Белки (г)" oninput="calculateKBDZBalance()">
-            </div>
-            <div>
-              <input type="number" id="input-fats" placeholder="Жиры (г)" oninput="calculateKBDZBalance()">
-            </div>
-            <div>
-              <input type="number" id="input-carbs" placeholder="Угл (г)" oninput="calculateKBDZBalance()">
-            </div>
+          <label>Макронутриенты</label>
+          <div class="macro-input-grid" style="margin-bottom:6px;">
+            <div><label for="input-protein">Белки, г</label><input type="number" id="input-protein" inputmode="decimal" min="0" step="0.1" placeholder="0" oninput="calculateKBDZBalance()"></div>
+            <div><label for="input-fats">Жиры, г</label><input type="number" id="input-fats" inputmode="decimal" min="0" step="0.1" placeholder="0" oninput="calculateKBDZBalance()"></div>
+            <div><label for="input-carbs">Углеводы, г</label><input type="number" id="input-carbs" inputmode="decimal" min="0" step="0.1" placeholder="0" oninput="calculateKBDZBalance()"></div>
           </div>
 
           <div class="row" style="margin-bottom:4px;">
@@ -1081,7 +1087,8 @@
             </div>
           </div>
 
-          <button class="btn-primary" onclick="saveKBDZForToday()" style="margin-top: 4px; font-size: 0.8rem;">Сохранить день в историю</button>
+          <button class="btn-primary" onclick="saveKBDZForSelectedDate()" style="margin-top: 4px; font-size: 0.8rem;">Сохранить день в историю</button>
+          <div id="kbdz-history-list" style="margin-top:9px;"></div>
         </div>
 
         <div style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center;">
@@ -1182,7 +1189,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.50";
+    const APP_VERSION = "v1.0.51";
 
     const AUTH_LOGIN = "admin";
     const AUTH_PASS = "1234";
@@ -1431,6 +1438,7 @@
     const MASTER_STORAGE_KEYS = [PRIMARY_KEY_EX, PRIMARY_KEY_LOGS, PRIMARY_KEY_TPL, PRIMARY_KEY_BODY];
 
     function kbdzStorageKey(dateStr) { return `gym_kbdz_${dateStr}${userId}`; }
+    const NUTRITION_PROFILE_KEY = `lift_lab_nutrition_profile${userId}`;
     function isValidDateKey(value) {
       if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
       const [y, m, d] = value.split('-').map(Number);
@@ -1653,7 +1661,7 @@
         }, 180);
       });
       document.addEventListener('keydown', event => {
-        if (event.key !== 'Enter') return;
+        if (event.key !== 'Enter' && event.key !== 'NumpadEnter') return;
         const target = event.target;
         if (target.matches('#input-weight, #cal-add-weight')) {
           event.preventDefault();
@@ -3224,6 +3232,50 @@
       }
     }
 
+    function saveNutritionProfile() {
+      const profile = {
+        gender: document.getElementById('user-gender')?.value || 'male',
+        age: document.getElementById('user-age')?.value || '',
+        height: document.getElementById('user-height')?.value || '',
+        weight: document.getElementById('user-weight')?.value || '',
+        activity: document.getElementById('user-activity')?.value || '1.3'
+      };
+      try { localStorage.setItem(NUTRITION_PROFILE_KEY, JSON.stringify(profile)); } catch (e) { console.warn('Не удалось сохранить профиль питания', e); }
+    }
+
+    function loadNutritionProfile() {
+      try {
+        const raw = localStorage.getItem(NUTRITION_PROFILE_KEY);
+        if (!raw) return false;
+        const profile = JSON.parse(raw);
+        if (!profile || typeof profile !== 'object') return false;
+        if (['male','female'].includes(profile.gender)) document.getElementById('user-gender').value = profile.gender;
+        ['age','height','weight'].forEach(key => { const el=document.getElementById(`user-${key}`); if (el && Number(profile[key]) > 0) el.value=profile[key]; });
+        const activity = document.getElementById('user-activity');
+        if (activity && [...activity.options].some(option => option.value === String(profile.activity))) activity.value=String(profile.activity);
+        return true;
+      } catch (e) { console.warn('Не удалось прочитать профиль питания', e); return false; }
+    }
+
+    function setupNutritionEnterNavigation() {
+      const ids = ['user-age','user-height','user-weight','input-kcal-in','input-daily-steps','input-protein','input-fats','input-carbs','input-extra-active-kcal'];
+      const fields = ids.map(id => document.getElementById(id)).filter(Boolean);
+      fields.forEach((field, index) => {
+        field.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== 'NumpadEnter') return;
+          event.preventDefault();
+          const next = fields[index + 1];
+          if (next) { next.focus(); if (typeof next.select === 'function') next.select(); }
+          else { field.blur(); }
+        });
+      });
+      ['user-gender','user-age','user-height','user-weight','user-activity'].forEach(id => {
+        const el=document.getElementById(id); if (!el) return;
+        el.addEventListener('change', saveNutritionProfile);
+        if (el.type === 'number') el.addEventListener('input', saveNutritionProfile);
+      });
+    }
+
     function getCurrentNutritionProfile() {
       return {
         gender: document.getElementById('user-gender')?.value || 'male',
@@ -3372,7 +3424,7 @@
         } catch(e) {}
       }
 
-      const currentIn = Math.max(0, parseFloat(document.getElementById('input-kcal-in')?.value) || 0);
+      const currentIn = selectedKBDZDate() === dateKey(now) ? Math.max(0, parseFloat(document.getElementById('input-kcal-in')?.value) || 0) : 0;
       const todaySaved = await getKBDZForDate(dateKey(now));
       if (currentIn > 0 && !todaySaved) {
         const base = calculateBaseEnergy(currentProfile).baseTdee;
@@ -3399,9 +3451,41 @@
       }
     }
 
-    async function saveKBDZForToday() {
+    function selectedKBDZDate() {
+      const value = document.getElementById('input-kbdz-date')?.value || dateKey(new Date());
+      return isValidDateKey(value) ? value : dateKey(new Date());
+    }
+
+    function formatKBDZDate(dateStr) {
+      const date = dateFromKey(dateStr);
+      return Number.isNaN(date.getTime()) ? dateStr : date.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+    }
+
+    async function renderKBDZHistory() {
+      const host = document.getElementById('kbdz-history-list');
+      if (!host) return;
+      const entries = [];
+      const today = new Date();
+      for (let i=0; i<30; i++) {
+        const date = new Date(today); date.setDate(today.getDate()-i);
+        const key = dateKey(date);
+        const raw = await getKBDZForDate(key);
+        if (raw) {
+          try { const data=JSON.parse(raw); entries.push({date:key,kcal:Number(data.kcalIn)||0,protein:Number(data.protein)||0,fats:Number(data.fats)||0,carbs:Number(data.carbs)||0}); } catch (_) {}
+        }
+      }
+      host.innerHTML = entries.length ? `<div style="font-size:.68rem;font-weight:700;color:var(--text-muted);margin:7px 0 4px;">Сохранённые дни (последние 30 дней)</div>${entries.map(item => `<button type="button" class="kbdz-history-item ${item.date===selectedKBDZDate()?'active':''}" onclick="selectKBDZHistoryDate('${item.date}')"><span>${formatKBDZDate(item.date)}</span><span>${item.kcal} ккал · Б ${item.protein} / Ж ${item.fats} / У ${item.carbs}</span></button>`).join('')}` : '<div style="font-size:.68rem;color:var(--text-muted);margin-top:7px;">Сохранённых дней пока нет.</div>';
+    }
+
+    async function selectKBDZHistoryDate(dateStr) {
+      const picker=document.getElementById('input-kbdz-date');
+      if (picker) picker.value=dateStr;
+      await loadKBDZForSelectedDate();
+    }
+
+    async function saveKBDZForSelectedDate() {
       triggerHaptic();
-      const todayStr = dateKey(new Date());
+      const selectedDate = selectedKBDZDate();
       const data = {
         kcalIn: parseFloat(document.getElementById('input-kcal-in')?.value) || 0,
         protein: parseFloat(document.getElementById('input-protein')?.value) || 0,
@@ -3415,34 +3499,52 @@
         weight: document.getElementById('user-weight')?.value,
         activity: document.getElementById('user-activity')?.value
       };
-
-      await localStore.setItem(kbdzStorageKey(todayStr), JSON.stringify(data));
+      saveNutritionProfile();
+      await localStore.setItem(kbdzStorageKey(selectedDate), JSON.stringify(data));
+      const label=document.getElementById('kbdz-selected-date-label');
+      if (label) label.textContent=`Запись сохранена: ${formatKBDZDate(selectedDate)}`;
       calculateWeeklyBalance();
-      if (tg?.showAlert) tg.showAlert('Дневник КБЖУ сохранен на устройстве!');
-      else alert('Дневник КБЖУ сохранен на устройстве!');
+      await renderKBDZHistory();
+      if (tg?.showAlert) tg.showAlert(`Дневник КБЖУ сохранён: ${formatKBDZDate(selectedDate)}`);
+      else alert(`Дневник КБЖУ сохранён: ${formatKBDZDate(selectedDate)}`);
+    }
+
+    async function loadKBDZForSelectedDate() {
+      const selectedDate=selectedKBDZDate();
+      const saved=await getKBDZForDate(selectedDate);
+      const fields = { 'input-kcal-in':'kcalIn', 'input-protein':'protein', 'input-fats':'fats', 'input-carbs':'carbs', 'input-daily-steps':'steps', 'input-extra-active-kcal':'extraActive' };
+      Object.entries(fields).forEach(([id,key]) => { const el=document.getElementById(id); if(el) el.value=''; });
+      if (saved) {
+        try {
+          const data=JSON.parse(saved);
+          Object.entries(fields).forEach(([id,key]) => { const el=document.getElementById(id); if(el && data[key] !== undefined && data[key] !== null) el.value=data[key]; });
+        } catch(e) { console.warn('Не удалось загрузить дневник за выбранную дату', e); }
+      }
+      const label=document.getElementById('kbdz-selected-date-label');
+      if (label) label.textContent=saved ? `Загружена сохранённая запись: ${formatKBDZDate(selectedDate)}` : `Новая запись за ${formatKBDZDate(selectedDate)}`;
+      recalculateTDEE();
+      await renderKBDZHistory();
     }
 
     async function loadTodayKBDZData() {
+      const hasSavedProfile = loadNutritionProfile();
       const savedGender = localStorage.getItem('lift_lab_body_gender');
       if (savedGender && document.getElementById('user-gender')) document.getElementById('user-gender').value = savedGender;
-      const todayStr = dateKey(new Date());
-      const saved = await getKBDZForDate(todayStr);
-      if (saved) {
-        try {
-          const d = JSON.parse(saved);
-          if (document.getElementById('input-kcal-in')) document.getElementById('input-kcal-in').value = d.kcalIn || '';
-          if (document.getElementById('input-protein')) document.getElementById('input-protein').value = d.protein || '';
-          if (document.getElementById('input-fats')) document.getElementById('input-fats').value = d.fats || '';
-          if (document.getElementById('input-carbs')) document.getElementById('input-carbs').value = d.carbs || '';
-          if (document.getElementById('input-daily-steps')) document.getElementById('input-daily-steps').value = d.steps || '';
-          if (document.getElementById('input-extra-active-kcal')) document.getElementById('input-extra-active-kcal').value = d.extraActive || '';
-          
-          if (d.gender && !savedGender && document.getElementById('user-gender')) { document.getElementById('user-gender').value = d.gender; localStorage.setItem('lift_lab_body_gender', d.gender); }
-          if (d.age && document.getElementById('user-age')) document.getElementById('user-age').value = d.age;
-          if (d.height && document.getElementById('user-height')) document.getElementById('user-height').value = d.height;
-          if (d.weight && document.getElementById('user-weight')) document.getElementById('user-weight').value = d.weight;
-          if (d.activity && document.getElementById('user-activity')) document.getElementById('user-activity').value = d.activity;
-        } catch(e) {}
+      const picker=document.getElementById('input-kbdz-date');
+      if (picker) { picker.max=dateKey(new Date()); picker.value=dateKey(new Date()); }
+      await loadKBDZForSelectedDate();
+      if (!hasSavedProfile) {
+        const todaySaved = await getKBDZForDate(dateKey(new Date()));
+        if (todaySaved) {
+          try {
+            const legacyProfile = JSON.parse(todaySaved);
+            if (['male','female'].includes(legacyProfile.gender)) document.getElementById('user-gender').value=legacyProfile.gender;
+            ['age','height','weight'].forEach(key => { const el=document.getElementById(`user-${key}`); if (el && Number(legacyProfile[key]) > 0) el.value=legacyProfile[key]; });
+            const activity=document.getElementById('user-activity');
+            if (activity && [...activity.options].some(option => option.value === String(legacyProfile.activity))) activity.value=String(legacyProfile.activity);
+            saveNutritionProfile();
+          } catch (_) {}
+        }
       }
       syncLatestWeightToCalc();
       recalculateTDEE();
@@ -3456,7 +3558,7 @@
       return /^gym_master_(?:exercises|logs|templates|body)(?:_tg_\d+)?$/.test(key) ||
         /^gym_app_(?:theme|version)(?:_tg_\d+)?$/.test(key) ||
         /^gym_kbdz_\d{4}-\d{2}-\d{2}(?:_tg_\d+)?$/.test(key) ||
-        (/^lift_lab_(?:archived_exercises|exercise_groups)(?:_tg_\d+)?$/.test(key) || key === 'lift_lab_body_gender' || key === 'lift_lab_nutrition_goal');
+        (/^lift_lab_(?:archived_exercises|exercise_groups)(?:_tg_\d+)?$/.test(key) || key === 'lift_lab_body_gender' || key === 'lift_lab_nutrition_goal' || key === NUTRITION_PROFILE_KEY || /^lift_lab_nutrition_profile(?:_tg_\d+)?$/.test(key));
     }
 
     function setBackupStatus(message, isError = false) {
@@ -3661,6 +3763,8 @@
     ['input-weight','input-reps','exercise-select','active-template-select'].forEach(id => {
       const el=document.getElementById(id); if(el){el.addEventListener('input',scheduleWorkoutDraftSave);el.addEventListener('change',scheduleWorkoutDraftSave);}
     });
+
+    setupNutritionEnterNavigation();
 
     try {
       checkAuth();

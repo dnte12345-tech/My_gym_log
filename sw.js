@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lift-lab-cache-v1.0.50';
+const CACHE_NAME = 'lift-lab-cache-v1.0.51';
 const CACHE_PREFIX = 'lift-lab-cache-';
 const CORE_ASSETS = ['./', './index.html'];
 const OPTIONAL_ASSETS = [
